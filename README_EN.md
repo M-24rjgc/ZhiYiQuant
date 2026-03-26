@@ -67,6 +67,31 @@ Windows installer output:
 src-tauri/target/release/bundle/msi/ZhiYiQuant_2.2.0_x64_en-US.msi
 ```
 
+## Automated Releases
+
+This repository now includes an automated release workflow:
+
+- CI build workflow: `.github/workflows/build-tauri.yml`
+- GitHub Release workflow: `.github/workflows/publish-tauri.yml`
+
+When you push a version tag such as:
+
+```bash
+git tag v2.2.0
+git push origin v2.2.0
+```
+
+GitHub Actions will automatically:
+
+- build the Windows installer
+- build macOS packages
+- create or update the matching GitHub Release
+- upload the generated bundles to Release Assets
+
+Releases page:
+
+- <https://github.com/M-24rjgc/ZhiYiQuant/releases>
+
 ## Software Copyright Materials
 
 - [Materials Index](docs/software-copyright/README_CN.md)

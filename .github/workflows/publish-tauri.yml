@@ -1,0 +1,91 @@
+name: Publish Tauri Desktop
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish-tauri:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            args: --bundles msi
+          - os: macos-13
+            args: ""
+          - os: macos-14
+            args: ""
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: quantdinger_vue/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend_api_python/requirements.txt
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install frontend deps
+        working-directory: ./quantdinger_vue
+        env:
+          HUSKY: 0
+        run: |
+          npm ci || npm install
+
+      - name: Install backend deps
+        working-directory: ./backend_api_python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build Python sidecar
+        run: |
+          python backend_api_python/scripts/build_sidecar.py
+
+      - name: Publish desktop bundles
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: ./src-tauri
+          tagName: v__VERSION__
+          releaseName: ZhiYiQuant Desktop v__VERSION__
+          releaseBody: |
+            Automated desktop release for ZhiYiQuant Desktop.
+
+            Included assets:
+            - Windows MSI installer
+            - macOS application bundles generated on GitHub Actions
+
+            Notes:
+            - macOS packages are built automatically in CI.
+            - If Apple signing credentials are not configured, macOS artifacts will be unsigned.
+          releaseDraft: false
+          prerelease: false
+          uploadWorkflowArtifacts: true
+          args: ${{ matrix.args }}

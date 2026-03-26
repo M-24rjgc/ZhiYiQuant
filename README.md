@@ -89,6 +89,31 @@ Windows 安装包默认输出到：
 src-tauri/target/release/bundle/msi/ZhiYiQuant_2.2.0_x64_en-US.msi
 ```
 
+## 自动发布
+
+仓库已经配置 GitHub Actions 自动发布流程：
+
+- 分支日常构建：`.github/workflows/build-tauri.yml`
+- GitHub Release 发布：`.github/workflows/publish-tauri.yml`
+
+当你推送版本标签时，例如：
+
+```bash
+git tag v2.2.0
+git push origin v2.2.0
+```
+
+GitHub Actions 会自动：
+
+- 构建 Windows 安装包
+- 构建 macOS 安装包
+- 创建或更新对应版本的 GitHub Release
+- 将安装包上传到 Release Assets
+
+GitHub Releases 页面：
+
+- <https://github.com/M-24rjgc/ZhiYiQuant/releases>
+
 ## 软件著作权材料
 
 本仓库已经内置一套可直接整理申报的软件著作权辅助材料，入口见：
