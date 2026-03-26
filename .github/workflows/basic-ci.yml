@@ -1,0 +1,141 @@
+﻿name: Basic CI
+
+# Basic CI workflow for syntax and lint checks.
+# This workflow ensures the codebase has no syntax errors and passes linting.
+# It does NOT run tests, start servers, or require external services.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  python-check:
+    name: Python Syntax Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          # Use Python 3.12 to match Dockerfile and support f-string expressions with backslashes (PEP 701)
+
+      - name: Install dependencies
+        working-directory: ./backend_api_python
+        run: |
+          python -m pip install --upgrade pip
+          # Install dependencies, excluding Windows-only packages (MetaTrader5)
+          # MetaTrader5 is Windows-only and not available on Linux, so we filter it out
+          grep -v "MetaTrader5" requirements.txt > /tmp/requirements_ci.txt
+          pip install -r /tmp/requirements_ci.txt
+          # Install dependencies to verify they are installable and enable import checks.
+
+      - name: Python syntax check
+        working-directory: ./backend_api_python
+        run: |
+          # Check Python syntax for all .py files using compileall
+          # This catches syntax errors, indentation issues, and basic structural problems
+          echo "Checking Python syntax..."
+          python -m py_compile run.py
+          python -m compileall -q app/ scripts/ || (echo "Python syntax check failed" && exit 1)
+          echo "✓ Python syntax check passed"
+
+      - name: Python import check
+        working-directory: ./backend_api_python
+        run: |
+          # Verify critical modules can be imported
+          # We import but do NOT call create_app() to avoid triggering:
+          # - Database connections
+          # - Worker threads
+          # - Network services
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          # Import key modules to verify they are loadable
+          from app import create_app
+          from app.config import settings
+          from app.routes import health
+          
+          print('✓ Core modules imported successfully')
+          print('✓ No critical import errors detected')
+          "
+          # This will FAIL if:
+          # - Critical imports fail (missing dependencies, broken module structure)
+          # This will PASS if:
+          # - Dependencies are available and importable
+          # - Core module structure is intact
+
+  frontend-check:
+    name: Frontend Syntax Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          # Use Node.js 20 to meet dependency requirements (commander@14.0.0 requires Node >= 20)
+          # Note: Dockerfile uses Node 18, but dependencies require Node 20
+
+      - name: Install dependencies
+        working-directory: ./quantdinger_vue
+        env:
+          HUSKY: 0
+          # Disable husky in CI (git hooks are not needed in CI environment)
+        run: |
+          # Project uses yarn (as specified in package.json packageManager field)
+          # Enable corepack to use the correct yarn version
+          corepack enable
+          # Configure yarn registry with fallback to mirror for better reliability
+          # Try official registry first, fallback to Taobao mirror if needed
+          yarn config set registry https://registry.npmjs.org/ || true
+          yarn config set network-timeout 300000 || true
+          # IMPORTANT: skip lifecycle scripts in CI to avoid running `prepare` (husky install),
+          # which fails because `.git` is not present in GitHub Actions checkouts by default.
+          # Retry logic: try up to 3 times with exponential backoff
+          max_retries=3
+          retry_count=0
+          while [ $retry_count -lt $max_retries ]; do
+            if yarn install --frozen-lockfile --ignore-scripts; then
+              echo "✓ Dependencies installed successfully"
+              break
+            else
+              retry_count=$((retry_count + 1))
+              if [ $retry_count -lt $max_retries ]; then
+                echo "⚠ Install failed, retrying ($retry_count/$max_retries)..."
+                # Switch to Taobao mirror on retry for better reliability in China/network issues
+                if [ $retry_count -eq 2 ]; then
+                  echo "Switching to Taobao mirror for retry..."
+                  yarn config set registry https://registry.npmmirror.com/ || true
+                fi
+                sleep $((retry_count * 5))
+              else
+                echo "✗ Failed to install dependencies after $max_retries attempts"
+                exit 1
+              fi
+            fi
+          done
+          # Use --frozen-lockfile for reproducible installs. Use --ignore-scripts to keep CI non-intrusive.
+
+      - name: Frontend lint check
+        working-directory: ./quantdinger_vue
+        run: |
+          # Run ESLint to check JavaScript/Vue syntax and code quality
+          # Using --no-fix to ensure we only check, not modify code
+          npm run lint:nofix
+          # This will FAIL if:
+          # - JavaScript/Vue syntax errors exist
+          # - ESLint rules are violated
+          # This will PASS if:
+          # - Code is syntactically valid
+          # - Code passes ESLint rules
+

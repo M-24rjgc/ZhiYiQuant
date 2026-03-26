@@ -1,0 +1,16 @@
+{
+  "software_name_cn": "智弈量化桌面版软件",
+  "software_name_en": "ZhiYiQuant Desktop",
+  "version": "2.2.0",
+  "release_date": "2026-03-26",
+  "copyright_owner": "TO_BE_CONFIRMED",
+  "license": "Apache-2.0",
+  "desktop_framework": "Tauri 2.x",
+  "frontend_stack": "Vue 2 + Ant Design Vue",
+  "backend_stack": "Python Flask + SQLite",
+  "target_platforms": [
+    "Windows",
+    "macOS",
+    "Linux"
+  ]
+}

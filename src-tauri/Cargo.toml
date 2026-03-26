@@ -1,0 +1,26 @@
+[package]
+name = "zhiyiquant-desktop"
+version = "2.2.0"
+description = "ZhiYiQuant desktop application built with Tauri 2"
+authors = ["ZhiYiQuant Team"]
+license = "Apache-2.0"
+repository = "https://github.com/M-24rjgc/ZhiYiQuant"
+edition = "2021"
+rust-version = "1.71"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "zhiyiquant_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.0-rc.13", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.0.0-rc.17", features = [] }
+tauri-plugin-log = "2.0.0-rc"
+tauri-plugin-shell = "2.0.0-rc"

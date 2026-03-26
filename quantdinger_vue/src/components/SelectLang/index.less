@@ -1,0 +1,47 @@
+@import '~ant-design-vue/es/style/themes/default';
+
+@header-menu-prefix-cls: ~'@{ant-prefix}-pro-header-menu';
+@header-drop-down-prefix-cls: ~'@{ant-prefix}-pro-drop-down';
+
+.@{header-menu-prefix-cls} {
+  .anticon {
+    margin-right: 8px;
+  }
+
+  .ant-dropdown-menu-item {
+    min-width: 160px;
+  }
+}
+
+.@{header-drop-down-prefix-cls} {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: @layout-header-height;
+  line-height: @layout-header-height;
+  padding: 0 12px;
+  vertical-align: top;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  > i {
+    font-size: 16px !important;
+    transform: none !important;
+
+    svg {
+      position: relative;
+      top: -1px;
+    }
+  }
+}
+
+/* 手机端适配 */
+@media (max-width: 768px) {
+  .@{header-drop-down-prefix-cls} {
+    padding: 0 8px;
+  }
+}
