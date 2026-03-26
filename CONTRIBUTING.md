@@ -1,117 +1,37 @@
-﻿# Contributing to ZhiYiQuant
+# Contributing
 
-Thanks for your interest in contributing to **ZhiYiQuant**.
+ZhiYiQuant is currently maintained as an independent personal project.
 
-ZhiYiQuant is a **local-first, private AI-driven quantitative trading workspace**.
-It is built for people who care about:
-- data sovereignty
-- local execution
-- transparent systems
-- engineering over hype
+This repository is public, but it is **not** being run as a community-driven collaboration program. The primary development workflow is maintained directly by the project owner.
 
-This document explains **how to contribute** and **what contribution means here**.
+## Current policy
 
----
+- Issues are welcome for bug reports and focused suggestions
+- Small, clear pull requests may be reviewed when they are directly relevant
+- Large unsolicited feature branches are not part of the default workflow
+- Architectural direction, release timing, and scope remain under maintainer control
 
-## ⚠️ Please Read First
+## Before opening a pull request
 
-ZhiYiQuant is **not a DAO**.
-There is **no token**, **no airdrop**, and **no financial incentive** at this stage.
+Please open an issue first if your change is:
 
-If you are looking for short-term rewards, promotions, or token speculation,
-this project is probably **not a good fit**.
+- cross-module
+- user-facing
+- architectural
+- likely to change behavior or data layout
 
-If you are interested in:
-- building credible infrastructure
-- publishing real work under your name
-- shaping an early-stage system with long-term value
+This helps avoid duplicated effort and keeps the public history clean.
 
-you are very welcome here.
+## What is most helpful
 
----
+- reproducible bug reports
+- minimal fixes
+- documentation corrections
+- setup or packaging improvements
 
-## 🧭 What Contribution Means
+## Development notes
 
-Contributing to ZhiYiQuant means creating **public, verifiable work**.
-
-Your contributions:
-- are attributed publicly on GitHub
-- can be referenced in your resume or portfolio
-- remain valuable to you beyond this project
-
-This is a **builder-first environment**.
-
----
-
-## 🧑‍💻 Ways to Contribute
-
-### 1) Core Engineering
-- Python strategy engine
-- execution logic
-- AI / LLM agent workflows
-- backtesting and data pipelines
-
-Small, focused improvements are preferred.
-
----
-
-### 2) Strategy & Research
-- example strategies
-- research notebooks
-- execution experiments
-- performance analysis
-
-This is a good place to demonstrate how you think.
-
----
-
-### 3) Documentation & Explanation
-- tutorials and setup guides
-- architecture explanations
-- design rationale
-
-Clear explanations matter as much as good code.
-
----
-
-### 4) Content & Advocacy
-- technical blog posts
-- demo videos
-- system breakdowns
-- honest reviews or critiques
-
-You are not “marketing”.
-You are explaining something real.
-
----
-
-## 🔗 Communication Channels
-
-- **Issues**: bug reports and feature requests
-- **Discussions**: questions, ideas, and design conversations
-- **Community**: official links are listed in `README.md`
-
-If you plan a large change, please open a discussion first.
-
----
-
-## 🛠️ Development Setup
-
-This repository contains:
-
-- `backend_api_python/`: Flask backend + strategy runtime
-- `quantdinger_vue/`: Vue frontend
-
-### Backend (Python)
-
-```bash
-cd backend_api_python
-pip install -r requirements.txt
-cp env.example .env   # Windows: copy env.example .env
-python run.py
-```
-
-### Frontend (Vue)
+### Frontend
 
 ```bash
 cd quantdinger_vue
@@ -119,69 +39,21 @@ npm install
 npm run serve
 ```
 
----
+### Backend
 
-## 🌿 Branching & Pull Requests
+```bash
+cd backend_api_python
+pip install -r requirements.txt
+python run.py
+```
 
-### Branch naming
+### Desktop
 
-- `fix/xxx` — bug fixes
-- `feat/xxx` — new features
-- `docs/xxx` — documentation
-- `chore/xxx` — maintenance
+```bash
+cd src-tauri
+cargo tauri dev
+```
 
-### Pull request guidelines
+## License
 
-Please include:
-
-- what changed and why
-- how to test
-- screenshots/GIFs for UI changes (if applicable)
-- backward compatibility notes (if any)
-
-Keep PRs focused and reviewable.
-
----
-
-## 🧪 Testing & Verification
-
-We do not enforce a single test command yet. Please at least:
-
-- **Backend**: run the API locally and verify affected endpoints
-- **Frontend**: run the dev server and verify affected pages/components
-
-Bug fixes should include a minimal regression test when practical.
-
----
-
-## 🔐 Security
-
-Please do not open public issues for security vulnerabilities.
-
-For security reports, contact the maintainer via the email in README.md and include:
-
-- description of the issue
-- steps to reproduce
-- impact assessment
-
----
-
-## 📜 License
-
-By contributing, you agree that your contributions will be licensed
-under the project's license (see LICENSE).
-
----
-
-## 🧠 A Note on the Future
-
-ZhiYiQuant may explore incentive or alignment mechanisms in the future.
-Nothing is promised, scheduled, or guaranteed.
-
-What is guaranteed:
-
-- your work will be visible
-- your name will be attached to it
-- your contribution will remain yours
-
-Build carefully. Build openly. Build things that last.
+By submitting code or documentation, you agree that accepted changes are licensed under the repository license.

@@ -1,116 +1,35 @@
-﻿# Code of Conduct
+# Code of Conduct
 
-ZhiYiQuant is a technical, builder-first open-source project.
-We value clear thinking, respectful collaboration, and long-term credibility.
+This repository is maintained as a public technical project. All public interaction around the repository should remain respectful, professional, and focused on the work.
 
-This Code of Conduct exists to ensure that all contributors and users
-can participate in a professional, constructive environment.
+## Expected behavior
 
----
+- discuss code, design, bugs, and documentation in good faith
+- keep criticism technical and specific
+- avoid personal attacks, harassment, or hostile behavior
+- avoid spam, promotion, or unrelated arguments
 
-## 1) Our Commitment
+## Unacceptable behavior
 
-We are committed to providing a harassment-free and respectful experience
-for everyone involved in the ZhiYiQuant community, regardless of:
+- harassment or intimidation
+- discriminatory language
+- doxxing or publishing private information
+- repeated bad-faith disruption
+- abusive, insulting, or threatening behavior
 
-- age, gender identity, or expression
-- sexual orientation
-- disability or medical condition
-- ethnicity, nationality, or religion
-- level of experience or background
+## Scope
 
-Participation in this project requires mutual respect and good faith.
+This applies to:
 
----
+- GitHub issues
+- pull requests
+- code reviews
+- discussions directly related to this repository
 
-## 2) Expected Behavior
+## Enforcement
 
-We expect all participants to:
+The maintainer may edit, hide, lock, or remove content that harms the repository environment, and may block repeat offenders when necessary.
 
-- Communicate clearly and respectfully
-- Focus discussions on ideas, code, and design — not individuals
-- Be open to technical critique and alternative viewpoints
-- Assume good intent in others unless clearly proven otherwise
-- Keep discussions relevant and constructive
+## Reporting
 
-Disagreement is normal.
-Personal attacks are not.
-
----
-
-## 3) Unacceptable Behavior
-
-The following behaviors are not tolerated:
-
-- Harassment, discrimination, or intimidation of any kind
-- Personal attacks, insults, or derogatory comments
-- Trolling, bad-faith arguments, or repeated disruption
-- Publishing private information without explicit permission
-- Sexualized language or imagery in inappropriate contexts
-- Persistent off-topic or promotional spam
-
----
-
-## 4) Scope
-
-This Code of Conduct applies to all official ZhiYiQuant spaces, including:
-
-- GitHub issues, pull requests, discussions, and code reviews
-- Any community channels linked from this repository
-- Project-related communication and collaboration spaces
-
----
-
-## 5) Reporting Issues
-
-If you experience or witness behavior that violates this Code of Conduct,
-please report it through one of the following channels:
-
-1. **GitHub**  
-   Open an issue labeled `conduct`.  
-   Please avoid including sensitive or private information.
-
-2. **Email**  
-   Contact the project maintainer via the email listed in `README.md`.
-
-If there is an immediate safety concern, contact your local emergency services.
-
-All reports will be reviewed seriously and confidentially.
-
----
-
-## 6) Enforcement
-
-Project maintainers are responsible for enforcing this Code of Conduct.
-
-Actions may include, but are not limited to:
-
-- Private warning or clarification
-- Temporary restriction from community participation
-- Permanent removal from project spaces
-- Rejection or reversal of contributions
-
-Enforcement decisions are made to protect the project
-and its contributors, not to punish individuals.
-
----
-
-## 7) Maintainer Discretion
-
-Maintainers reserve the right to moderate discussions
-and take action in the interest of:
-
-- project integrity
-- contributor safety
-- long-term community health
-
-Good faith participation is always welcome.
-Disruptive behavior is not.
-
----
-
-## 8) Attribution
-
-This Code of Conduct is informed by widely adopted open-source standards,
-including the Contributor Covenant, and adapted for ZhiYiQuant’s
-engineering-focused environment.
+If something needs to be reported privately, use the maintainer contact information shown in the repository.
