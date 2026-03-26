@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="metaverse-container" :style="cssVars">
     <!-- 背景特效 -->
     <div class="bg-grid"></div>

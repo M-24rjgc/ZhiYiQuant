@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div :class="['basic-layout-wrapper', settings.theme]">
     <pro-layout
       :menus="menus"

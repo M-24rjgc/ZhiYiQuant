@@ -1,4 +1,4 @@
-﻿import antdJaJP from 'ant-design-vue/es/locale-provider/ja_JP'
+import antdJaJP from 'ant-design-vue/es/locale-provider/ja_JP'
 import momentJA from 'moment/locale/ja'
 
 const components = {

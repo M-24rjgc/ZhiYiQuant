@@ -1,4 +1,4 @@
-﻿import antd from 'ant-design-vue/es/locale-provider/zh_TW'
+import antd from 'ant-design-vue/es/locale-provider/zh_TW'
 import momentTW from 'moment/locale/zh-tw'
 
 const components = {

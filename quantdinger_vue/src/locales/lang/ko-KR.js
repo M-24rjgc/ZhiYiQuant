@@ -1,4 +1,4 @@
-﻿import antdKoKR from 'ant-design-vue/es/locale-provider/ko_KR'
+import antdKoKR from 'ant-design-vue/es/locale-provider/ko_KR'
 import momentKO from 'moment/locale/ko'
 
 const components = {

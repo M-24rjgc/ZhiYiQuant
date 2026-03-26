@@ -1,4 +1,4 @@
-﻿import antdThTH from 'ant-design-vue/es/locale-provider/th_TH'
+import antdThTH from 'ant-design-vue/es/locale-provider/th_TH'
 import momentTH from 'moment/locale/th'
 
 const components = {

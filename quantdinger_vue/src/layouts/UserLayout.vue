@@ -1,4 +1,4 @@
-﻿<template>
+<template>
 
   <div id="userLayout" :class="['user-layout-wrapper', isMobile && 'mobile']">
     <div class="container">

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div :class="footerCls">
     <global-footer class="footer custom-render">
       <template v-slot:links>

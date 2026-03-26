@@ -1,4 +1,4 @@
-﻿import antdArEG from 'ant-design-vue/es/locale-provider/ar_EG'
+import antdArEG from 'ant-design-vue/es/locale-provider/ar_EG'
 import momentAR from 'moment/locale/ar'
 
 const components = {

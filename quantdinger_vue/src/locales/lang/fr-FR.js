@@ -1,4 +1,4 @@
-﻿import antdFrFR from 'ant-design-vue/es/locale-provider/fr_FR'
+import antdFrFR from 'ant-design-vue/es/locale-provider/fr_FR'
 import momentFR from 'moment/locale/fr'
 
 const components = {

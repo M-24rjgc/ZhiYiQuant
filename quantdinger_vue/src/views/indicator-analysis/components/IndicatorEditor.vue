@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <a-modal
       :title="$t('dashboard.indicator.editor.title')"

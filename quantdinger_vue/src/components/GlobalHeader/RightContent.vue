@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div :class="wrpCls">
     <avatar-dropdown :menu="true" :current-user="currentUser" :class="prefixCls" />
     <notice-icon :class="prefixCls" />

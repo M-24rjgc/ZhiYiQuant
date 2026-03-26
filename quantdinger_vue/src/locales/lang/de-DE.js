@@ -1,4 +1,4 @@
-﻿import antdDeDE from 'ant-design-vue/es/locale-provider/de_DE'
+import antdDeDE from 'ant-design-vue/es/locale-provider/de_DE'
 import momentDE from 'moment/locale/de'
 
 const components = {

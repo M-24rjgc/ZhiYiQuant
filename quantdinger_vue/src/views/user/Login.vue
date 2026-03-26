@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="main">
     <div class="auth-intro">
       <div class="desc">AI driven quantitative insights for global markets</div>

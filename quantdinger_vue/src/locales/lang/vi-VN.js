@@ -1,4 +1,4 @@
-﻿import antdViVN from 'ant-design-vue/es/locale-provider/vi_VN'
+import antdViVN from 'ant-design-vue/es/locale-provider/vi_VN'
 import momentVI from 'moment/locale/vi'
 
 const components = {
