@@ -216,7 +216,7 @@ class IndicatorCaller:
                            if not k.startswith('_') and k not in [
                                'eval', 'exec', 'compile', 'open', 'input',
                                'help', 'exit', 'quit', '__import__',
-                               'copyright', 'credits', 'license'
+                                'copyright', 'license'
                            ]}
             safe_builtins['__import__'] = safe_import
             
@@ -244,19 +244,16 @@ class IndicatorCaller:
                 if isinstance(indicator_ref, int):
                     # 按ID查询
                     cursor.execute("""
-                        SELECT id, code FROM qd_indicator_codes 
-                        WHERE id = %s AND (user_id = %s OR publish_to_community = 1)
+                        SELECT id, code FROM zhiyiquant_indicator_codes 
+                        WHERE id = %s AND user_id = %s
                     """, (indicator_ref, self.user_id))
                 else:
                     # 按名称查询（优先自己的指标）
                     cursor.execute("""
-                        SELECT id, code FROM qd_indicator_codes 
+                        SELECT id, code FROM zhiyiquant_indicator_codes 
                         WHERE name = %s AND user_id = %s
-                        UNION
-                        SELECT id, code FROM qd_indicator_codes 
-                        WHERE name = %s AND publish_to_community = 1
                         LIMIT 1
-                    """, (str(indicator_ref), self.user_id, str(indicator_ref)))
+                    """, (str(indicator_ref), self.user_id))
                 
                 row = cursor.fetchone()
                 cursor.close()
@@ -283,7 +280,7 @@ def get_indicator_params(indicator_id: int) -> List[Dict[str, Any]]:
     try:
         with get_db_connection() as db:
             cursor = db.cursor()
-            cursor.execute("SELECT code FROM qd_indicator_codes WHERE id = %s", (indicator_id,))
+            cursor.execute("SELECT code FROM zhiyiquant_indicator_codes WHERE id = %s", (indicator_id,))
             row = cursor.fetchone()
             cursor.close()
             

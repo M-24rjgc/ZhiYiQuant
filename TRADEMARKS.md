@@ -32,7 +32,7 @@ You must still comply with Apache 2.0 requirements (e.g., preserving license/cop
 You may:
 
 - **Accurately refer** to the project as “ZhiYiQuant” when discussing the unmodified project (e.g., tutorials, reviews, bug reports).
-- Use the name “ZhiYiQuant” to **link to this repository** or the official community channels.
+- Use the name “ZhiYiQuant” to **link to this repository** or official project pages.
 - Use the logo/name for **non-commercial editorial references** (e.g., blog posts) as long as it does not imply endorsement, and the logo is used **unmodified**.
 
 ---

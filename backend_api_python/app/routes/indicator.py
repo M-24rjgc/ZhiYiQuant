@@ -1,11 +1,8 @@
-﻿"""
+"""
 Indicator APIs (local-first).
 
 These endpoints are used by the frontend `/indicator-analysis` page.
-In the original architecture, the frontend called PHP endpoints like:
-`/addons/zhiyiquant/indicator/getIndicators`.
-
-For local mode, we expose Python equivalents under `/api/indicator/*`.
+The desktop runtime exposes Python endpoints under `/api/indicator/*`.
 """
 
 from __future__ import annotations
@@ -65,25 +62,15 @@ def _row_to_indicator(row: Dict[str, Any], user_id: int) -> Dict[str, Any]:
 
     Frontend uses:
     - id, name, description, code
-    - is_buy (1 bought, 0 custom)
     - user_id / userId
-    - end_time (optional)
     """
     return {
         "id": row.get("id"),
         "user_id": row.get("user_id") if row.get("user_id") is not None else user_id,
-        "is_buy": row.get("is_buy") if row.get("is_buy") is not None else 0,
-        "end_time": row.get("end_time") if row.get("end_time") is not None else 1,
         "name": row.get("name") or "",
         "code": row.get("code") or "",
         "description": row.get("description") or "",
-        "publish_to_community": row.get("publish_to_community") if row.get("publish_to_community") is not None else 0,
-        "pricing_type": row.get("pricing_type") or "free",
-        "price": row.get("price") if row.get("price") is not None else 0,
-        # Local mode: encryption is not supported; keep field for frontend compatibility (always 0).
-        "is_encrypted": 0,
-        "preview_image": row.get("preview_image") or "",
-        # Prefer MySQL-like time fields; fallback to legacy local columns.
+        # Prefer MySQL-like time fields; fallback to local timestamp columns.
         "createtime": row.get("createtime") or row.get("created_at"),
         "updatetime": row.get("updatetime") or row.get("updated_at"),
     }
@@ -308,14 +295,12 @@ def get_indicators():
 
         with get_db_connection() as db:
             cur = db.cursor()
-            # Get user's own indicators (both purchased and custom).
             cur.execute(
                 """
                 SELECT
-                  id, user_id, is_buy, end_time, name, code, description,
-                  publish_to_community, pricing_type, price, is_encrypted, preview_image,
+                  id, user_id, name, code, description,
                   createtime, updatetime, created_at, updated_at
-                FROM qd_indicator_codes
+                FROM zhiyiquant_indicator_codes
                 WHERE user_id = ?
                 ORDER BY id DESC
                 """,
@@ -353,13 +338,6 @@ def save_indicator():
         code = data.get("code") or ""
         name = (data.get("name") or "").strip()
         description = (data.get("description") or "").strip()
-        publish_to_community = 1 if data.get("publishToCommunity") or data.get("publish_to_community") else 0
-        pricing_type = (data.get("pricingType") or data.get("pricing_type") or "free").strip() or "free"
-        try:
-            price = float(data.get("price") or 0)
-        except Exception:
-            price = 0.0
-        preview_image = (data.get("previewImage") or data.get("preview_image") or "").strip()
 
         if not code or not str(code).strip():
             return jsonify({"code": 0, "msg": "code is required", "data": None}), 400
@@ -377,76 +355,25 @@ def save_indicator():
 
         now = _now_ts()  # For BIGINT fields (createtime, updatetime)
 
-        # 检查用户是否是管理员（管理员发布的指标自动通过审核）
-        user_role = getattr(g, 'user_role', 'user')
-        is_admin = user_role == 'admin'
-        
         with get_db_connection() as db:
             cur = db.cursor()
             if indicator_id and indicator_id > 0:
-                # 检查是否从未发布改为发布，需要设置审核状态
-                if publish_to_community:
-                    cur.execute(
-                        "SELECT publish_to_community, review_status FROM qd_indicator_codes WHERE id = ? AND user_id = ?",
-                        (indicator_id, user_id)
-                    )
-                    existing = cur.fetchone()
-                    was_published = existing and existing.get('publish_to_community')
-                    # 如果之前未发布，现在发布，设置审核状态
-                    # 管理员发布的直接通过，普通用户需要待审核
-                    new_review_status = 'approved' if is_admin else 'pending'
-                    if not was_published:
-                        cur.execute(
-                            """
-                            UPDATE qd_indicator_codes
-                            SET name = ?, code = ?, description = ?,
-                                publish_to_community = ?, pricing_type = ?, price = ?, preview_image = ?,
-                                review_status = ?, review_note = '', reviewed_at = NOW(), reviewed_by = ?,
-                                updatetime = ?, updated_at = NOW()
-                            WHERE id = ? AND user_id = ? AND (is_buy IS NULL OR is_buy = 0)
-                            """,
-                            (name, code, description, publish_to_community, pricing_type, price, preview_image, 
-                             new_review_status, user_id if is_admin else None, now, indicator_id, user_id),
-                        )
-                    else:
-                        # 已发布过的更新，保持原审核状态
-                        cur.execute(
-                            """
-                            UPDATE qd_indicator_codes
-                            SET name = ?, code = ?, description = ?,
-                                publish_to_community = ?, pricing_type = ?, price = ?, preview_image = ?,
-                                updatetime = ?, updated_at = NOW()
-                            WHERE id = ? AND user_id = ? AND (is_buy IS NULL OR is_buy = 0)
-                            """,
-                            (name, code, description, publish_to_community, pricing_type, price, preview_image, now, indicator_id, user_id),
-                        )
-                else:
-                    # 取消发布，清除审核状态
-                    cur.execute(
-                        """
-                        UPDATE qd_indicator_codes
-                        SET name = ?, code = ?, description = ?,
-                            publish_to_community = ?, pricing_type = ?, price = ?, preview_image = ?,
-                            review_status = NULL, review_note = '', reviewed_at = NULL, reviewed_by = NULL,
-                            updatetime = ?, updated_at = NOW()
-                        WHERE id = ? AND user_id = ? AND (is_buy IS NULL OR is_buy = 0)
-                        """,
-                        (name, code, description, publish_to_community, pricing_type, price, preview_image, now, indicator_id, user_id),
-                    )
-            else:
-                # 新建指标 - 管理员发布的直接通过，普通用户需要待审核
-                review_status = None
-                if publish_to_community:
-                    review_status = 'approved' if is_admin else 'pending'
                 cur.execute(
                     """
-                    INSERT INTO qd_indicator_codes
-                      (user_id, is_buy, end_time, name, code, description,
-                       publish_to_community, pricing_type, price, preview_image, review_status,
-                       createtime, updatetime, created_at, updated_at)
-                    VALUES (?, 0, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    UPDATE zhiyiquant_indicator_codes
+                    SET name = ?, code = ?, description = ?, updatetime = ?, updated_at = NOW()
+                    WHERE id = ? AND user_id = ?
                     """,
-                    (user_id, name, code, description, publish_to_community, pricing_type, price, preview_image, review_status, now, now),
+                    (name, code, description, now, indicator_id, user_id),
+                )
+            else:
+                cur.execute(
+                    """
+                    INSERT INTO zhiyiquant_indicator_codes
+                      (user_id, name, code, description, createtime, updatetime, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    """,
+                    (user_id, name, code, description, now, now),
                 )
                 indicator_id = int(cur.lastrowid or 0)
             db.commit()
@@ -472,7 +399,7 @@ def delete_indicator():
         with get_db_connection() as db:
             cur = db.cursor()
             cur.execute(
-                "DELETE FROM qd_indicator_codes WHERE id = ? AND user_id = ? AND (is_buy IS NULL OR is_buy = 0)",
+                "DELETE FROM zhiyiquant_indicator_codes WHERE id = ? AND user_id = ?",
                 (indicator_id, user_id),
             )
             db.commit()
@@ -551,6 +478,7 @@ def verify_code():
             'df': df.copy(),
             'pd': pd,
             'np': np,
+            'params': {},
             'output': None
         }
         
@@ -667,7 +595,7 @@ def ai_generate():
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
-    # System prompt copied/adapted from the legacy PHP implementation.
+# System prompt for desktop indicator generation.
     SYSTEM_PROMPT = """# Role
 
 You are an expert Python quantitative trading developer. Your task is to write custom indicator or strategy scripts for a professional K-line chart component running in a browser (Pyodide environment).
@@ -698,7 +626,7 @@ output = {
 }
 Where `data` lists MUST have the same length as `df` and use `None` for "no value".
 
-Backtest/execution compatibility (recommended):
+Backtest/execution guidance (recommended):
 - Also set df['buy'] and df['sell'] as boolean columns (same length as df).
 
 # Signal confirmation / execution timing (IMPORTANT)
@@ -815,7 +743,7 @@ IMPORTANT: Output Python code directly, without explanations, without descriptio
         return content.strip() or _template_code()
 
     def stream():
-        # 不扣任何 QDT：开源本地版直接生成/返回代码
+        # 本地桌面版直接生成/返回代码，不做额外计费
         try:
             code_text = _generate_code_via_llm()
         except Exception as e:
@@ -864,7 +792,7 @@ def scan_once():
         with get_db_connection() as db:
             cur = db.cursor()
             cur.execute(
-                "SELECT id, name, code, description FROM qd_indicator_codes WHERE id = ? AND user_id = ?",
+                "SELECT id, name, code, description FROM zhiyiquant_indicator_codes WHERE id = ? AND user_id = ?",
                 (indicator_id, user_id)
             )
             indicator = cur.fetchone()
@@ -873,7 +801,7 @@ def scan_once():
                 return jsonify({'code': 0, 'msg': 'Indicator not found', 'data': None}), 404
 
             # 用户当前自选（用于标记结果）
-            cur.execute("SELECT market, symbol FROM qd_watchlist WHERE user_id = ?", (user_id,))
+            cur.execute("SELECT market, symbol FROM zhiyiquant_watchlist WHERE user_id = ?", (user_id,))
             watchlist_rows = cur.fetchall() or []
             cur.close()
 
@@ -900,7 +828,7 @@ def scan_once():
                         cur.execute(
                             """
                             SELECT market, symbol, name
-                            FROM qd_market_symbols
+                            FROM zhiyiquant_market_symbols
                             WHERE market = ? AND COALESCE(is_active, 1) = 1
                             ORDER BY COALESCE(is_hot, 0) DESC, COALESCE(sort_order, 0) DESC, id ASC
                             LIMIT ?
@@ -911,7 +839,7 @@ def scan_once():
                         cur.execute(
                             """
                             SELECT market, symbol, name
-                            FROM qd_market_symbols
+                            FROM zhiyiquant_market_symbols
                             WHERE COALESCE(is_active, 1) = 1
                             ORDER BY COALESCE(is_hot, 0) DESC, COALESCE(sort_order, 0) DESC, id ASC
                             LIMIT ?
@@ -949,7 +877,7 @@ def scan_once():
             with get_db_connection() as db:
                 cur = db.cursor()
                 cur.execute(
-                    "SELECT market, symbol, name FROM qd_watchlist WHERE user_id = ? ORDER BY id DESC LIMIT ?",
+                    "SELECT market, symbol, name FROM zhiyiquant_watchlist WHERE user_id = ? ORDER BY id DESC LIMIT ?",
                     (user_id, max_symbols)
                 )
                 rows = cur.fetchall() or []

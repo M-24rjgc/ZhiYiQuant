@@ -87,66 +87,6 @@ def analyze():
         }), 500
 
 
-@fast_analysis_bp.route('/analyze-legacy', methods=['POST'])
-@login_required
-def analyze_legacy():
-    """
-    Fast analysis with legacy format output.
-    For backward compatibility with existing frontend.
-    
-    POST /api/fast-analysis/analyze-legacy
-    Body: Same as /analyze
-    
-    Returns:
-        Result in multi-agent format for frontend compatibility.
-    """
-    try:
-        data = request.get_json() or {}
-        
-        market = (data.get('market') or '').strip()
-        symbol = (data.get('symbol') or '').strip()
-        language = data.get('language', 'en-US')
-        model = data.get('model')
-        timeframe = data.get('timeframe', '1D')
-        
-        if not market or not symbol:
-            return jsonify({
-                'code': 0,
-                'msg': 'market and symbol are required',
-                'data': None
-            }), 400
-        
-        service = get_fast_analysis_service()
-        result = service.analyze_legacy_format(
-            market=market,
-            symbol=symbol,
-            language=language,
-            model=model,
-            timeframe=timeframe
-        )
-        
-        if result.get('error'):
-            return jsonify({
-                'code': 0,
-                'msg': result['error'],
-                'data': result
-            }), 500
-        
-        return jsonify({
-            'code': 1,
-            'msg': 'success',
-            'data': result
-        })
-        
-    except Exception as e:
-        logger.error(f"Fast analysis legacy API failed: {e}", exc_info=True)
-        return jsonify({
-            'code': 0,
-            'msg': str(e),
-            'data': None
-        }), 500
-
-
 @fast_analysis_bp.route('/history', methods=['GET'])
 @login_required
 def get_history():

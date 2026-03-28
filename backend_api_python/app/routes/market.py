@@ -1,4 +1,4 @@
-﻿"""
+"""
 Market API routes (local-only).
 Provides watchlist, market metadata, symbol search, and pricing helpers for the frontend.
 """
@@ -69,17 +69,13 @@ def _ensure_watchlist_table():
 
 @market_bp.route('/config', methods=['GET'])
 def get_public_config():
-    """
-    Public config for frontend (local mode).
-    Mirrors the old PHP `/addons/zhiyiquant/index/getConfig` shape.
-    """
+    """Public config for the desktop frontend."""
     try:
         cfg = load_addon_config()
         models = (cfg.get('ai', {}) or {}).get('models')
         if not isinstance(models, dict) or not models:
             # Fallback defaults (offline friendly)
             models = {
-                # Keep some legacy defaults
                 'openai/gpt-4o': 'GPT-4o',
 
                 # Unified frontend model list (OpenRouter-style ids)
@@ -102,7 +98,7 @@ def get_public_config():
                 'anthropic/claude-haiku-4.5': 'Anthropic: Claude Haiku 4.5',
                 'z-ai/glm-4.6': 'Z.AI: GLM 4.6',
             }
-        return jsonify({'code': 1, 'msg': 'success', 'data': {'models': models, 'qdt_cost': {}}})
+        return jsonify({'code': 1, 'msg': 'success', 'data': {'models': models, 'model_costs': {}}})
     except Exception as e:
         logger.error(f"get_public_config failed: {str(e)}")
         return jsonify({'code': 0, 'msg': str(e), 'data': None}), 500
@@ -153,10 +149,7 @@ def get_market_types():
 
 @market_bp.route('/menuFooterConfig', methods=['GET'])
 def get_menu_footer_config():
-    """
-    Compatibility stub for old PHP `getMenuFooterConfig`.
-    Frontend can also hardcode this locally; this endpoint remains for completeness.
-    """
+    """Footer links for the desktop shell."""
     data = {
         'contact': {
             'support_url': 'https://github.com/',
@@ -219,12 +212,12 @@ def get_watchlist():
         with get_db_connection() as db:
             cur = db.cursor()
             cur.execute(
-                "SELECT id, market, symbol, name FROM qd_watchlist WHERE user_id = ? ORDER BY id DESC",
+                "SELECT id, market, symbol, name FROM zhiyiquant_watchlist WHERE user_id = ? ORDER BY id DESC",
                 (user_id,)
             )
             rows = cur.fetchall() or []
 
-            # Backfill display names for legacy rows (name empty or equals symbol).
+            # Backfill display names for rows where the name is empty or equals the symbol.
             # This keeps UI consistent without requiring users to re-add items.
             for row in rows:
                 try:
@@ -239,7 +232,7 @@ def get_watchlist():
                     if resolved and resolved != current_name:
                         row['name'] = resolved
                         cur.execute(
-                            "UPDATE qd_watchlist SET name = ?, updated_at = NOW() WHERE user_id = ? AND market = ? AND symbol = ?",
+                            "UPDATE zhiyiquant_watchlist SET name = ?, updated_at = NOW() WHERE user_id = ? AND market = ? AND symbol = ?",
                             (resolved, user_id, market, symbol)
                         )
                 except Exception:
@@ -275,10 +268,10 @@ def add_watchlist():
 
         with get_db_connection() as db:
             cur = db.cursor()
-            # Insert or update (PostgreSQL UPSERT)
+            # Insert or update the local watchlist row.
             cur.execute(
                 """
-                INSERT INTO qd_watchlist (user_id, market, symbol, name, created_at, updated_at) 
+                INSERT INTO zhiyiquant_watchlist (user_id, market, symbol, name, created_at, updated_at) 
                 VALUES (?, ?, ?, ?, NOW(), NOW())
                 ON CONFLICT(user_id, market, symbol) DO UPDATE SET
                     name = excluded.name,
@@ -338,7 +331,7 @@ def batch_add_watchlist():
                     seen.add(key)
 
                     cur.execute(
-                        "SELECT id FROM qd_watchlist WHERE user_id = ? AND market = ? AND symbol = ?",
+                        "SELECT id FROM zhiyiquant_watchlist WHERE user_id = ? AND market = ? AND symbol = ?",
                         (user_id, market, symbol)
                     )
                     existed = cur.fetchone() is not None
@@ -348,7 +341,7 @@ def batch_add_watchlist():
 
                     cur.execute(
                         """
-                        INSERT INTO qd_watchlist (user_id, market, symbol, name, created_at, updated_at)
+                        INSERT INTO zhiyiquant_watchlist (user_id, market, symbol, name, created_at, updated_at)
                         VALUES (?, ?, ?, ?, NOW(), NOW())
                         ON CONFLICT(user_id, market, symbol) DO UPDATE SET
                             name = excluded.name,
@@ -397,7 +390,7 @@ def remove_watchlist():
         with get_db_connection() as db:
             cur = db.cursor()
             cur.execute(
-                "DELETE FROM qd_watchlist WHERE user_id = ? AND symbol = ?",
+                "DELETE FROM zhiyiquant_watchlist WHERE user_id = ? AND symbol = ?",
                 (user_id, symbol)
             )
             db.commit()

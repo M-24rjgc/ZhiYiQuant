@@ -1,55 +1,50 @@
-<div align="center">
-  <a href="README.md">简体中文</a> |
-  <a href="README_EN.md">English</a>
-</div>
+# ZhiyiQuant
 
-<div align="center">
-  <img src="https://ai.zhiyiquant.com/img/logo.e0f510a8.png" alt="ZhiYiQuant Logo" width="144" height="144">
-  <h1>ZhiYiQuant Desktop</h1>
-  <p><strong>v2.2.0</strong></p>
-  <p>Local-first AI quantitative trading desktop software built with Tauri 2.x</p>
-</div>
+ZhiyiQuant is a local-first quantitative desktop workspace built around `Tauri 2`.
 
-## Overview
+V1 is scoped to a single-user desktop workflow and keeps these capabilities:
 
-ZhiYiQuant Desktop is a desktop-first quantitative trading application for market data analysis, indicator development, strategy backtesting, AI-assisted research, trading workflow management, and portfolio monitoring.
+- market search, watchlists, charts, and technical analysis
+- AI analysis and analysis history
+- custom indicators, parameterized indicators, backtests, and backtest history
+- strategy creation, execution, and trading assistant tools
+- portfolio tracking, alerts, and monitoring
+- local settings, profile management, and password changes
 
-This repository is now centered on the desktop edition:
+Current stack:
 
-- Desktop shell: Tauri 2.x
-- Frontend: Vue 2 + Ant Design Vue
-- Local service: Python Flask sidecar
-- Local database: SQLite
+- `Tauri 2`
+- `Vue 2 + Ant Design Vue`
+- `Python` specialist engines
+- `SQLite`
 
-## Highlights
+## Repository Layout
 
-- Tauri 2.x desktop project integrated
-- Python sidecar startup and local port handoff implemented
-- SQLite enabled as the default local database for desktop mode
-- Windows installer generated successfully
-- Software copyright registration materials included
+```text
+ZhiYiQuant/
+├─ src-tauri/          # Tauri 2 desktop host
+├─ zhiyiquant_vue/     # desktop frontend
+├─ backend_api_python/ # local Python engines
+└─ docs/               # V1 docs and V2 planning
+```
 
-## Quick Start
-
-### Frontend dev
+## Local Development
 
 ```bash
-cd quantdinger_vue
+cd zhiyiquant_vue
 npm install
 npm run serve
 ```
-
-### Desktop dev
 
 ```bash
 cd src-tauri
 cargo tauri dev
 ```
 
-### Build Windows installer
+## Build the Windows Installer
 
 ```bash
-cd quantdinger_vue
+cd zhiyiquant_vue
 npm run build
 
 cd ../backend_api_python
@@ -59,55 +54,8 @@ cd ../src-tauri
 cargo tauri build --bundles msi
 ```
 
-## Output
+## Scope
 
-Windows installer output:
+This V1 repository only contains the personal desktop product.
 
-```text
-src-tauri/target/release/bundle/msi/ZhiYiQuant_2.2.0_x64_en-US.msi
-```
-
-## Automated Releases
-
-This repository now includes an automated release workflow:
-
-- CI build workflow: `.github/workflows/build-tauri.yml`
-- GitHub Release workflow: `.github/workflows/publish-tauri.yml`
-
-When you push a version tag such as:
-
-```bash
-git tag v2.2.0
-git push origin v2.2.0
-```
-
-GitHub Actions will automatically:
-
-- build the Windows installer
-- build macOS packages
-- create or update the matching GitHub Release
-- upload the generated bundles to Release Assets
-
-Releases page:
-
-- <https://github.com/M-24rjgc/ZhiYiQuant/releases>
-
-## Software Copyright Materials
-
-- [Materials Index](docs/software-copyright/README_CN.md)
-- [Cover Template](docs/software-copyright/00_cover_template_cn.md)
-- [Submission Packet Notes](docs/software-copyright/01_submission_packet_cn.md)
-- [Source Excerpt](docs/software-copyright/source_excerpt_v2.2.0.txt)
-
-## Docs
-
-- [Chinese README](README.md)
-- [Backend README](backend_api_python/README.md)
-- [Frontend README](quantdinger_vue/README.md)
-- [Strategy Development Guide](docs/STRATEGY_DEV_GUIDE.md)
-
-## License
-
-Code is licensed under [Apache 2.0](LICENSE).
-
-For brand usage and redistribution involving product identity, please also review [TRADEMARKS.md](TRADEMARKS.md).
+Future ecosystem planning lives in [docs/V2_DESKTOP_ECOSYSTEM_PLAN.md](docs/V2_DESKTOP_ECOSYSTEM_PLAN.md).

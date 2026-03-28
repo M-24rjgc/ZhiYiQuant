@@ -19,7 +19,7 @@ def _get_user_id_from_strategy(strategy_id: int) -> int:
     try:
         with get_db_connection() as db:
             cur = db.cursor()
-            cur.execute("SELECT user_id FROM qd_strategies_trading WHERE id = %s", (strategy_id,))
+            cur.execute("SELECT user_id FROM zhiyiquant_strategies_trading WHERE id = %s", (strategy_id,))
             row = cur.fetchone()
             cur.close()
         return int((row or {}).get('user_id') or 1)
@@ -46,7 +46,7 @@ def record_trade(
         cur = db.cursor()
         cur.execute(
             """
-            INSERT INTO qd_strategy_trades
+            INSERT INTO zhiyiquant_strategy_trades
             (user_id, strategy_id, symbol, type, price, amount, value, commission, commission_ccy, profit, created_at)
             VALUES
             (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
@@ -72,7 +72,7 @@ def _fetch_position(strategy_id: int, symbol: str, side: str) -> Dict[str, Any]:
     with get_db_connection() as db:
         cur = db.cursor()
         cur.execute(
-            "SELECT * FROM qd_strategy_positions WHERE strategy_id = %s AND symbol = %s AND side = %s",
+            "SELECT * FROM zhiyiquant_strategy_positions WHERE strategy_id = %s AND symbol = %s AND side = %s",
             (int(strategy_id), str(symbol), str(side)),
         )
         row = cur.fetchone() or {}
@@ -84,7 +84,7 @@ def _delete_position(strategy_id: int, symbol: str, side: str) -> None:
     with get_db_connection() as db:
         cur = db.cursor()
         cur.execute(
-            "DELETE FROM qd_strategy_positions WHERE strategy_id = %s AND symbol = %s AND side = %s",
+            "DELETE FROM zhiyiquant_strategy_positions WHERE strategy_id = %s AND symbol = %s AND side = %s",
             (int(strategy_id), str(symbol), str(side)),
         )
         db.commit()
@@ -109,7 +109,7 @@ def upsert_position(
         cur = db.cursor()
         cur.execute(
             """
-            INSERT INTO qd_strategy_positions
+            INSERT INTO zhiyiquant_strategy_positions
             (user_id, strategy_id, symbol, side, size, entry_price, current_price, highest_price, lowest_price, updated_at)
             VALUES
             (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
@@ -117,8 +117,8 @@ def upsert_position(
                 size = excluded.size,
                 entry_price = excluded.entry_price,
                 current_price = excluded.current_price,
-                highest_price = CASE WHEN excluded.highest_price > 0 THEN excluded.highest_price ELSE qd_strategy_positions.highest_price END,
-                lowest_price = CASE WHEN excluded.lowest_price > 0 THEN excluded.lowest_price ELSE qd_strategy_positions.lowest_price END,
+                highest_price = CASE WHEN excluded.highest_price > 0 THEN excluded.highest_price ELSE zhiyiquant_strategy_positions.highest_price END,
+                lowest_price = CASE WHEN excluded.lowest_price > 0 THEN excluded.lowest_price ELSE zhiyiquant_strategy_positions.lowest_price END,
                 updated_at = NOW()
             """,
             (int(user_id), int(strategy_id), str(symbol), str(side), float(size or 0.0), float(entry_price or 0.0), float(current_price or 0.0), float(highest_price or 0.0), float(lowest_price or 0.0)),

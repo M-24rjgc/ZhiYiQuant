@@ -39,7 +39,7 @@ We consider the following areas in scope for security review:
 ### Out of Scope
 The following are outside the scope of this security policy:
 
-- Misconfigured user environments (OS, Docker, firewall, cloud host)
+- Misconfigured user environments (OS, firewall, cloud host)
 - Compromised user machines or infrastructure
 - Third-party services, exchanges, or APIs
 - Modified or unofficial builds of ZhiYiQuant

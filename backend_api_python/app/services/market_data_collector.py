@@ -694,7 +694,7 @@ class MarketDataCollector:
             },
             'DOGE': {
                 'name': 'Dogecoin',
-                'description': '狗狗币，Meme币代表，社区驱动',
+                'description': '狗狗币，Meme币代表，市场关注度高',
                 'category': 'Meme',
             },
         }
@@ -1070,7 +1070,7 @@ class MarketDataCollector:
         except Exception as e:
             logger.debug(f"同花顺新闻获取失败: {e}")
         
-        # 4) 雪球热帖（社区讨论）
+        # 4) 雪球热门讨论
         try:
             df = self._ak.stock_xuqiu(symbol=symbol)
             if df is not None and not df.empty:

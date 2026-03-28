@@ -12,7 +12,7 @@
       "allow": [
         {
           "args": true,
-          "name": "binaries/quantdinger-backend",
+          "name": "binaries/zhiyiquant-backend",
           "sidecar": true
         }
       ]

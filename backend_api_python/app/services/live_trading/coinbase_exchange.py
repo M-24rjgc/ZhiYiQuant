@@ -1,5 +1,5 @@
 """
-Coinbase Exchange (legacy, direct REST) client.
+Coinbase Exchange direct REST client.
 
 Auth headers:
 - CB-ACCESS-KEY

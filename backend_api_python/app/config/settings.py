@@ -1,12 +1,10 @@
 """
-应用主配置
+Desktop runtime configuration.
 """
 import os
 
+
 class MetaConfig(type):
-    # ==================== 服务配置 ====================
-    # 服务启动参数通常由环境变量或命令行参数决定，不建议从数据库读取
-    
     @property
     def HOST(cls):
         return os.getenv('PYTHON_API_HOST', '127.0.0.1')
@@ -17,32 +15,20 @@ class MetaConfig(type):
 
     @property
     def DEBUG(cls):
-        return os.getenv('PYTHON_API_DEBUG', 'False').lower() == 'true'
+        return os.getenv('PYTHON_API_DEBUG', 'false').lower() == 'true'
 
     @property
     def APP_NAME(cls):
-        return 'ZhiYiQuant Python API'
+        return 'ZhiyiQuant Desktop Engine'
 
     @property
     def VERSION(cls):
-        return '2.0.0'
+        return '1.0.0'
 
-    # ==================== 认证配置 ====================
     @property
     def SECRET_KEY(cls):
         return os.getenv('SECRET_KEY', 'zhiyiquant-secret-key-change-me')
 
-    @property
-    def ADMIN_USER(cls):
-        return os.getenv('ADMIN_USER', 'zhiyiquant')
-
-    @property
-    def ADMIN_PASSWORD(cls):
-        return os.getenv('ADMIN_PASSWORD', '123456')
-
-    # ==================== 日志配置 ====================
-    # 日志配置通常在应用启动最早阶段需要，建议保持环境变量
-    
     @property
     def LOG_LEVEL(cls):
         return os.getenv('LOG_LEVEL', 'INFO')
@@ -63,51 +49,44 @@ class MetaConfig(type):
     def LOG_BACKUP_COUNT(cls):
         return int(os.getenv('LOG_BACKUP_COUNT', 5))
 
-    # ==================== 安全配置 ====================
-
     @property
     def CORS_ORIGINS(cls):
         from app.utils.config_loader import load_addon_config
-        val = load_addon_config().get('app', {}).get('cors_origins')
-        return val if val else os.getenv('CORS_ORIGINS', '*')
+        value = load_addon_config().get('app', {}).get('cors_origins')
+        return value if value else os.getenv('CORS_ORIGINS', '*')
 
     @property
     def RATE_LIMIT(cls):
         from app.utils.config_loader import load_addon_config
-        val = load_addon_config().get('app', {}).get('rate_limit')
-        return int(val) if val is not None else int(os.getenv('RATE_LIMIT', 100))
-
-    # ==================== 功能开关 ====================
+        value = load_addon_config().get('app', {}).get('rate_limit')
+        return int(value) if value is not None else int(os.getenv('RATE_LIMIT', 100))
 
     @property
     def ENABLE_CACHE(cls):
         from app.utils.config_loader import load_addon_config
-        val = load_addon_config().get('app', {}).get('enable_cache')
-        if val is not None:
-            return bool(val)
-        return os.getenv('ENABLE_CACHE', 'False').lower() == 'true'
+        value = load_addon_config().get('app', {}).get('enable_cache')
+        if value is not None:
+            return bool(value)
+        return os.getenv('ENABLE_CACHE', 'false').lower() == 'true'
 
     @property
     def ENABLE_REQUEST_LOG(cls):
         from app.utils.config_loader import load_addon_config
-        val = load_addon_config().get('app', {}).get('enable_request_log')
-        if val is not None:
-            return bool(val)
-        return os.getenv('ENABLE_REQUEST_LOG', 'True').lower() == 'true'
+        value = load_addon_config().get('app', {}).get('enable_request_log')
+        if value is not None:
+            return bool(value)
+        return os.getenv('ENABLE_REQUEST_LOG', 'true').lower() == 'true'
 
     @property
     def ENABLE_AI_ANALYSIS(cls):
         from app.utils.config_loader import load_addon_config
-        val = load_addon_config().get('app', {}).get('enable_ai_analysis')
-        if val is not None:
-            return bool(val)
-        return os.getenv('ENABLE_AI_ANALYSIS', 'True').lower() == 'true'
+        value = load_addon_config().get('app', {}).get('enable_ai_analysis')
+        if value is not None:
+            return bool(value)
+        return os.getenv('ENABLE_AI_ANALYSIS', 'true').lower() == 'true'
 
 
 class Config(metaclass=MetaConfig):
-    """应用配置类"""
-    
     @classmethod
     def get_log_path(cls) -> str:
-        """获取日志文件完整路径"""
         return os.path.join(cls.LOG_DIR, cls.LOG_FILE)

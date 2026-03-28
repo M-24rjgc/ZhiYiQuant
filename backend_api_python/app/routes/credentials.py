@@ -3,7 +3,7 @@ Exchange credentials vault (local-only).
 
 Local deployment notes:
 - No encryption/decryption is used.
-- Credentials are stored as plaintext JSON in DB (encrypted_config column kept for compatibility).
+- Credentials are stored as plaintext JSON in the `encrypted_config` column.
 """
 
 import time
@@ -41,7 +41,7 @@ def list_credentials():
             cur.execute(
                 """
                 SELECT id, user_id, name, exchange_id, api_key_hint, created_at, updated_at
-                FROM qd_exchange_credentials
+                FROM zhiyiquant_exchange_credentials
                 WHERE user_id = ?
                 ORDER BY id DESC
                 """,
@@ -86,7 +86,7 @@ def create_credential():
             cur = db.cursor()
             cur.execute(
                 """
-                INSERT INTO qd_exchange_credentials (user_id, name, exchange_id, api_key_hint, encrypted_config, created_at, updated_at)
+                INSERT INTO zhiyiquant_exchange_credentials (user_id, name, exchange_id, api_key_hint, encrypted_config, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, NOW(), NOW())
                 """,
                 (user_id, name, exchange_id, _api_key_hint(api_key), plaintext_config)
@@ -115,7 +115,7 @@ def delete_credential():
         with get_db_connection() as db:
             cur = db.cursor()
             cur.execute(
-                "DELETE FROM qd_exchange_credentials WHERE id = ? AND user_id = ?",
+                "DELETE FROM zhiyiquant_exchange_credentials WHERE id = ? AND user_id = ?",
                 (cred_id, user_id)
             )
             db.commit()
@@ -145,7 +145,7 @@ def get_credential():
             cur.execute(
                 """
                 SELECT id, user_id, name, exchange_id, encrypted_config, api_key_hint, created_at, updated_at
-                FROM qd_exchange_credentials
+                FROM zhiyiquant_exchange_credentials
                 WHERE id = ? AND user_id = ?
                 """,
                 (cred_id, user_id)

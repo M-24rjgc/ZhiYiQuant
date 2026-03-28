@@ -30,7 +30,7 @@ def _venv_python(venv_dir: str) -> str:
 def _ensure_venv(backend_root: str, index_url: str) -> str:
     venv_dir = os.path.join(backend_root, ".venv_sidecar")
     py = _venv_python(venv_dir)
-    marker = os.path.join(venv_dir, ".qd_sidecar_ready")
+    marker = os.path.join(venv_dir, ".zhiyiquant_sidecar_ready")
 
     if not os.path.exists(py):
         subprocess.check_call([sys.executable, "-m", "venv", venv_dir], cwd=backend_root)
@@ -51,13 +51,14 @@ def main():
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     backend_root = os.path.join(repo_root, "backend_api_python")
     entry = os.path.join(backend_root, "sidecar_main.py")
+    migrations_dir = os.path.join(backend_root, "migrations")
 
     if not os.path.exists(entry):
         raise SystemExit(f"sidecar entry not found: {entry}")
 
     target = _target_triple()
     is_windows = platform.system().lower().startswith("win")
-    base_name = f"quantdinger-backend-{target}"
+    base_name = f"zhiyiquant-backend-{target}"
     out_name = f"{base_name}.exe" if is_windows else base_name
 
     dist_dir = os.path.join(backend_root, "dist_sidecar")
@@ -66,8 +67,8 @@ def main():
     for p in [dist_dir, build_dir]:
         os.makedirs(p, exist_ok=True)
 
-    index_url = os.getenv("QD_PIP_INDEX_URL") or "https://pypi.org/simple"
-    use_venv = not ((os.getenv("QD_SIDECAR_NO_VENV") or "").strip() in {"1", "true", "yes"})
+    index_url = os.getenv("ZHIYIQUANT_PIP_INDEX_URL") or "https://pypi.org/simple"
+    use_venv = not ((os.getenv("ZHIYIQUANT_SIDECAR_NO_VENV") or "").strip() in {"1", "true", "yes"})
     py = _ensure_venv(backend_root, index_url) if use_venv else sys.executable
 
     cmd = [
@@ -107,6 +108,8 @@ def main():
         dist_dir,
         "--workpath",
         build_dir,
+        "--add-data",
+        f"{migrations_dir}{os.pathsep}migrations",
         entry,
     ]
 

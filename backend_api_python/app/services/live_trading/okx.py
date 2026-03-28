@@ -409,7 +409,7 @@ class OkxClient(BaseRestClient):
 
     def _resolve_pos_side(self, *, requested_pos_side: str, market_type: str) -> str:
         """
-        OKX swap position mode compatibility:
+        OKX swap position mode handling:
         - long_short_mode: posSide must be "long" or "short"
         - net_mode: posSide must be "net" (and close orders should use reduceOnly=true)
         """

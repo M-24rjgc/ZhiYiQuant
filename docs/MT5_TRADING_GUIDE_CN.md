@@ -188,18 +188,6 @@ curl -X POST http://localhost:5000/api/mt5/close \
 | 交易被禁用 | 交易未启用 | 在 MT5 选项中启用自动交易 |
 | 订单被拒绝 | 保证金不足 | 检查账户余额和保证金 |
 
-## Docker 部署
-
-在 Docker 中运行 ZhiYiQuant 时，MT5 交易需要：
-
-1. **Windows 主机**：Windows 上的 Docker Desktop 或 Windows Server
-2. **主机上的 MT5**：在 Windows 主机上运行 MT5 终端
-3. **网络访问**：容器必须能访问主机的 MT5 终端
-
-对于 Linux/Mac 部署，请考虑：
-- 在 Windows VM 上运行 ZhiYiQuant 后端
-- 使用远程 Windows 服务器进行 MT5 连接
-
 ## 安全建议
 
 - 使用专用交易账户

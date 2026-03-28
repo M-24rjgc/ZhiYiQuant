@@ -195,7 +195,7 @@ for symbol, df in data.items():
 2. **Rebalancing Frequency**: The system checks if rebalancing is needed based on `rebalance_frequency` settings. No trades will be executed if it's not time to rebalance.
 3. **Batch Execution**: All trading signals are executed in parallel, with a maximum of 10 concurrent trades.
 4. **Position Management**: The system automatically manages positions to ensure the portfolio meets configuration requirements.
-5. **Compatibility**: Cross-sectional strategy functionality does not affect existing single-symbol strategies. Both can coexist.
+5. **Isolation**: Cross-sectional strategy functionality does not affect existing single-symbol strategies. Both can coexist.
 
 ## Database Migration
 

@@ -62,7 +62,7 @@ def load_strategy_configs(strategy_id: int) -> Dict[str, Any]:
         cur.execute(
             """
             SELECT id, exchange_config, trading_config, market_type, leverage, execution_mode, market_category
-            FROM qd_strategies_trading
+            FROM zhiyiquant_strategies_trading
             WHERE id = %s
             """,
             (int(strategy_id),),
@@ -90,13 +90,13 @@ def load_strategy_configs(strategy_id: int) -> Dict[str, Any]:
 
 
 def _load_credential_config(credential_id: int, user_id: int = 1) -> Dict[str, Any]:
-    """Load credential JSON from qd_exchange_credentials (plaintext in local mode)."""
+    """Load credential JSON from zhiyiquant_exchange_credentials (plaintext in local mode)."""
     with get_db_connection() as db:
         cur = db.cursor()
         cur.execute(
             """
             SELECT encrypted_config
-            FROM qd_exchange_credentials
+            FROM zhiyiquant_exchange_credentials
             WHERE id = %s AND user_id = %s
             """,
             (int(credential_id), int(user_id)),

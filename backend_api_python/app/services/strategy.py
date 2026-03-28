@@ -26,7 +26,7 @@ class StrategyService:
         try:
             with get_db_connection() as db:
                 cursor = db.cursor()
-                query = "SELECT id FROM qd_strategies_trading WHERE status = 'running'"
+                query = "SELECT id FROM zhiyiquant_strategies_trading WHERE status = 'running'"
                 cursor.execute(query)
                 results = cursor.fetchall()
                 cursor.close()
@@ -40,10 +40,10 @@ class StrategyService:
         try:
             with get_db_connection() as db:
                 cursor = db.cursor()
-                # Assume qd_strategies_trading table has strategy_type field
+                # Assume zhiyiquant_strategies_trading table has strategy_type field
                 # If not, may need join query or determine from other fields
                 # Here we assume table structure is updated
-                query = "SELECT id, strategy_type FROM qd_strategies_trading WHERE status = 'running'"
+                query = "SELECT id, strategy_type FROM zhiyiquant_strategies_trading WHERE status = 'running'"
                 cursor.execute(query)
                 results = cursor.fetchall()
                 cursor.close()
@@ -421,7 +421,7 @@ class StrategyService:
             with get_db_connection() as db:
                 cur = db.cursor()
                 cur.execute(
-                    "SELECT strategy_type FROM qd_strategies_trading WHERE id = ?",
+                    "SELECT strategy_type FROM zhiyiquant_strategies_trading WHERE id = ?",
                     (strategy_id,)
                 )
                 row = cur.fetchone()
@@ -437,12 +437,12 @@ class StrategyService:
                 cur = db.cursor()
                 if user_id is not None:
                     cur.execute(
-                        "UPDATE qd_strategies_trading SET status = ?, updated_at = NOW() WHERE id = ? AND user_id = ?",
+                        "UPDATE zhiyiquant_strategies_trading SET status = ?, updated_at = NOW() WHERE id = ? AND user_id = ?",
                         (status, strategy_id, user_id)
                     )
                 else:
                     cur.execute(
-                        "UPDATE qd_strategies_trading SET status = ?, updated_at = NOW() WHERE id = ?",
+                        "UPDATE zhiyiquant_strategies_trading SET status = ?, updated_at = NOW() WHERE id = ?",
                         (status, strategy_id)
                     )
                 db.commit()
@@ -482,7 +482,7 @@ class StrategyService:
                 cur.execute(
                     """
                     SELECT *
-                    FROM qd_strategies_trading
+                    FROM zhiyiquant_strategies_trading
                     WHERE user_id = ?
                     ORDER BY id DESC
                     """,
@@ -517,9 +517,9 @@ class StrategyService:
             with get_db_connection() as db:
                 cur = db.cursor()
                 if user_id is not None:
-                    cur.execute("SELECT * FROM qd_strategies_trading WHERE id = ? AND user_id = ?", (strategy_id, user_id))
+                    cur.execute("SELECT * FROM zhiyiquant_strategies_trading WHERE id = ? AND user_id = ?", (strategy_id, user_id))
                 else:
-                    cur.execute("SELECT * FROM qd_strategies_trading WHERE id = ?", (strategy_id,))
+                    cur.execute("SELECT * FROM zhiyiquant_strategies_trading WHERE id = ?", (strategy_id,))
                 r = cur.fetchone()
                 cur.close()
             if not r:
@@ -579,7 +579,7 @@ class StrategyService:
             cur = db.cursor()
             cur.execute(
                 """
-                INSERT INTO qd_strategies_trading
+                INSERT INTO zhiyiquant_strategies_trading
                 (user_id, strategy_name, strategy_type, market_category, execution_mode, notification_config,
                  status, symbol, timeframe, initial_capital, leverage, market_type,
                  exchange_config, indicator_config, trading_config, ai_model_config, decide_interval,
@@ -749,12 +749,12 @@ class StrategyService:
                 cur = db.cursor()
                 if user_id is not None:
                     cur.execute(
-                        "SELECT id FROM qd_strategies_trading WHERE strategy_group_id = ? AND user_id = ?",
+                        "SELECT id FROM zhiyiquant_strategies_trading WHERE strategy_group_id = ? AND user_id = ?",
                         (strategy_group_id, user_id)
                     )
                 else:
                     cur.execute(
-                        "SELECT id FROM qd_strategies_trading WHERE strategy_group_id = ?",
+                        "SELECT id FROM zhiyiquant_strategies_trading WHERE strategy_group_id = ?",
                         (strategy_group_id,)
                     )
                 rows = cur.fetchall() or []
@@ -802,7 +802,7 @@ class StrategyService:
             cur = db.cursor()
             cur.execute(
                 """
-                UPDATE qd_strategies_trading
+                UPDATE zhiyiquant_strategies_trading
                 SET strategy_name = ?,
                     market_category = ?,
                     execution_mode = ?,
@@ -846,9 +846,9 @@ class StrategyService:
             with get_db_connection() as db:
                 cur = db.cursor()
                 if user_id is not None:
-                    cur.execute("DELETE FROM qd_strategies_trading WHERE id = ? AND user_id = ?", (strategy_id, user_id))
+                    cur.execute("DELETE FROM zhiyiquant_strategies_trading WHERE id = ? AND user_id = ?", (strategy_id, user_id))
                 else:
-                    cur.execute("DELETE FROM qd_strategies_trading WHERE id = ?", (strategy_id,))
+                    cur.execute("DELETE FROM zhiyiquant_strategies_trading WHERE id = ?", (strategy_id,))
                 db.commit()
                 cur.close()
             return True

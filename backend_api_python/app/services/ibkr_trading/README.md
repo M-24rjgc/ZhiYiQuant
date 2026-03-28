@@ -123,14 +123,3 @@ backend_api_python/app/routes/ibkr.py            # Route file
 ```
 
 Then remove the related import and registration code in `app/routes/__init__.py`.
-
-## Docker Note
-
-When running in Docker, IBKR trading requires TWS/IB Gateway to be accessible from the container. 
-For local deployment, you can:
-
-1. Run TWS/Gateway on host machine
-2. Use host network mode or configure port mapping
-3. Set `host` to the host machine's IP address (e.g., `host.docker.internal` on Docker Desktop)
-
-> **Note**: IBKR connection parameters are configured per-strategy in the frontend, not via environment variables.

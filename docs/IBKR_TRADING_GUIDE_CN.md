@@ -152,14 +152,6 @@ curl -X POST http://localhost:5000/api/ibkr/order \
 | 无效合约 | 代码格式错误 | 检查股票代码格式 |
 | 订单被拒绝 | 资金/保证金不足 | 检查账户余额 |
 
-## Docker 部署
-
-在 Docker 中运行 ZhiYiQuant 时，TWS/IB Gateway 必须能从容器中访问：
-
-1. 在宿主机上运行 TWS/Gateway
-2. 使用 `host.docker.internal` 作为主机地址（Docker Desktop）
-3. 或配置 host 网络模式
-
 ## 安全建议
 
 - 在 TWS/Gateway 中仅启用"仅允许来自本地主机的连接"

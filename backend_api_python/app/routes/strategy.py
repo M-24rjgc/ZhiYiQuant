@@ -308,7 +308,7 @@ def get_trades():
             cur.execute(
                 """
                 SELECT id, strategy_id, symbol, type, price, amount, value, commission, commission_ccy, profit, created_at
-                FROM qd_strategy_trades
+                FROM zhiyiquant_strategy_trades
                 WHERE strategy_id = ?
                 ORDER BY id DESC
                 """,
@@ -337,7 +337,7 @@ def get_trades():
                         pass
             processed_rows.append(trade)
         
-        # Frontend expects data.trades; keep data.items for compatibility with list-style components.
+        # Return both keys because current list views may read either data.trades or data.items.
         return jsonify({'code': 1, 'msg': 'success', 'data': {'trades': processed_rows, 'items': processed_rows}})
     except Exception as e:
         logger.error(f"get_trades failed: {str(e)}")
@@ -366,7 +366,7 @@ def get_positions():
                 """
                 SELECT id, strategy_id, symbol, side, size, entry_price, current_price, highest_price,
                        unrealized_pnl, pnl_percent, equity, updated_at
-                FROM qd_strategy_positions
+                FROM zhiyiquant_strategy_positions
                 WHERE strategy_id = ?
                 ORDER BY id DESC
                 """,
@@ -441,7 +441,7 @@ def get_positions():
                 try:
                     cur.execute(
                         """
-                        UPDATE qd_strategy_positions
+                        UPDATE zhiyiquant_strategy_positions
                         SET current_price = ?, unrealized_pnl = ?, pnl_percent = ?, updated_at = NOW()
                         WHERE id = ?
                         """,
@@ -481,7 +481,7 @@ def get_equity_curve():
             cur.execute(
                 """
                 SELECT created_at, profit
-                FROM qd_strategy_trades
+                FROM zhiyiquant_strategy_trades
                 WHERE strategy_id = ?
                 ORDER BY created_at ASC
                 """,
@@ -816,7 +816,7 @@ def get_strategy_notifications():
         user_strategy_ids = []
         with get_db_connection() as db:
             cur = db.cursor()
-            cur.execute("SELECT id FROM qd_strategies_trading WHERE user_id = ?", (user_id,))
+            cur.execute("SELECT id FROM zhiyiquant_strategies_trading WHERE user_id = ?", (user_id,))
             rows = cur.fetchall() or []
             user_strategy_ids = [r.get('id') for r in rows if r.get('id')]
             cur.close()
@@ -852,7 +852,7 @@ def get_strategy_notifications():
             cur.execute(
                 f"""
                 SELECT *
-                FROM qd_strategy_notifications
+                FROM zhiyiquant_strategy_notifications
                 {where_sql}
                 ORDER BY id DESC
                 LIMIT ?
@@ -902,9 +902,9 @@ def mark_notification_read():
             cur = db.cursor()
             cur.execute(
                 """
-                UPDATE qd_strategy_notifications SET is_read = 1 
+                UPDATE zhiyiquant_strategy_notifications SET is_read = 1 
                 WHERE id = ? AND (
-                    strategy_id IN (SELECT id FROM qd_strategies_trading WHERE user_id = ?)
+                    strategy_id IN (SELECT id FROM zhiyiquant_strategies_trading WHERE user_id = ?)
                     OR (strategy_id IS NULL AND user_id = ?)
                 )
                 """,
@@ -929,8 +929,8 @@ def mark_all_notifications_read():
             cur = db.cursor()
             cur.execute(
                 """
-                UPDATE qd_strategy_notifications SET is_read = 1 
-                WHERE strategy_id IN (SELECT id FROM qd_strategies_trading WHERE user_id = ?)
+                UPDATE zhiyiquant_strategy_notifications SET is_read = 1 
+                WHERE strategy_id IN (SELECT id FROM zhiyiquant_strategies_trading WHERE user_id = ?)
                    OR (strategy_id IS NULL AND user_id = ?)
                 """,
                 (user_id, user_id)
@@ -954,8 +954,8 @@ def clear_notifications():
             cur = db.cursor()
             cur.execute(
                 """
-                DELETE FROM qd_strategy_notifications 
-                WHERE strategy_id IN (SELECT id FROM qd_strategies_trading WHERE user_id = ?)
+                DELETE FROM zhiyiquant_strategy_notifications 
+                WHERE strategy_id IN (SELECT id FROM zhiyiquant_strategies_trading WHERE user_id = ?)
                    OR (strategy_id IS NULL AND user_id = ?)
                 """,
                 (user_id, user_id)

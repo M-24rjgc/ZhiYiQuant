@@ -30,7 +30,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: quantdinger_vue/package-lock.json
+          cache-dependency-path: zhiyiquant_vue/package-lock.json
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -43,7 +43,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install frontend deps
-        working-directory: ./quantdinger_vue
+        working-directory: ./zhiyiquant_vue
         env:
           HUSKY: 0
         run: |

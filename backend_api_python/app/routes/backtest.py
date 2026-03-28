@@ -1,4 +1,4 @@
-﻿"""
+"""
 Backtest API routes
 """
 from flask import Blueprint, request, jsonify, g
@@ -38,7 +38,7 @@ def _normalize_lang(lang: str | None) -> str:
     """
     Normalize language code for AI output.
 
-    This should align with frontend i18n locales under `quantdinger_vue/src/locales/lang`.
+    This should align with frontend i18n locales under `zhiyiquant_vue/src/locales/lang`.
     Supported:
       - zh-CN, zh-TW, en-US, ko-KR, th-TH, vi-VN, ar-SA, de-DE, fr-FR, ja-JP
     Default: zh-CN
@@ -177,7 +177,7 @@ def run_backtest():
                 iid = int(indicator_id)
                 with get_db_connection() as db:
                     cur = db.cursor()
-                    cur.execute("SELECT code FROM qd_indicator_codes WHERE id = ?", (iid,))
+                    cur.execute("SELECT code FROM zhiyiquant_indicator_codes WHERE id = ?", (iid,))
                     row = cur.fetchone()
                     cur.close()
                 if row and row.get('code'):
@@ -272,7 +272,7 @@ def run_backtest():
                 cur = db.cursor()
                 cur.execute(
                     """
-                    INSERT INTO qd_backtest_runs
+                    INSERT INTO zhiyiquant_backtest_runs
                     (user_id, indicator_id, market, symbol, timeframe, start_date, end_date,
                      initial_capital, commission, slippage, leverage, trade_direction,
                      strategy_config, status, error_message, result_json, created_at)
@@ -332,7 +332,7 @@ def run_backtest():
                 cur = db.cursor()
                 cur.execute(
                     """
-                    INSERT INTO qd_backtest_runs
+                    INSERT INTO zhiyiquant_backtest_runs
                     (user_id, indicator_id, market, symbol, timeframe, start_date, end_date,
                      initial_capital, commission, slippage, leverage, trade_direction,
                      strategy_config, status, error_message, result_json, created_at)
@@ -422,7 +422,7 @@ def get_backtest_history():
                        start_date, end_date, initial_capital, commission, slippage,
                        leverage, trade_direction, strategy_config, status, error_message,
                        created_at
-                FROM qd_backtest_runs
+                FROM zhiyiquant_backtest_runs
                 WHERE {where_sql}
                 ORDER BY id DESC
                 LIMIT ? OFFSET ?
@@ -469,7 +469,7 @@ def get_backtest_run():
                        start_date, end_date, initial_capital, commission, slippage,
                        leverage, trade_direction, strategy_config, status, error_message,
                        result_json, created_at
-                FROM qd_backtest_runs
+                FROM zhiyiquant_backtest_runs
                 WHERE id = ? AND user_id = ?
                 """,
                 (run_id, user_id),
@@ -744,7 +744,7 @@ def ai_analyze_backtest_runs():
                        start_date, end_date, initial_capital, commission, slippage,
                        leverage, trade_direction, strategy_config, status, error_message,
                        result_json, created_at
-                FROM qd_backtest_runs
+                FROM zhiyiquant_backtest_runs
                 WHERE user_id = ? AND id IN ({placeholders})
                 ORDER BY id DESC
                 """,

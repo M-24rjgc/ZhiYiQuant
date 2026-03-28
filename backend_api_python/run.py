@@ -1,5 +1,5 @@
 ﻿"""
-ZhiYiQuant Python API entrypoint.
+ZhiyiQuant desktop engine entrypoint.
 """
 import os
 import sys
@@ -74,15 +74,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from app import create_app
 from app.config.settings import Config
 
-# Create app instance (for gunicorn use)
-# gunicorn -c gunicorn_config.py "run:app"
 app = create_app()
 
 
 def main():
     """启动应用"""
     # Keep startup messages ASCII-only and short.
-    print("ZhiYiQuant Python API v2.2.0")
+    print("ZhiyiQuant Desktop Engine v1.0.0")
     
     # Check demo mode status for debugging
     demo_status = os.getenv('IS_DEMO_MODE', 'false').lower()
@@ -105,3 +103,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

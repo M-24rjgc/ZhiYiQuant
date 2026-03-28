@@ -1149,7 +1149,7 @@ class BacktestService:
                            if not k.startswith('_') and k not in [
                                'eval', 'exec', 'compile', 'open', 'input',
                                'help', 'exit', 'quit',
-                               'copyright', 'credits', 'license'
+                                'copyright', 'license'
                            ]}
             
             # Add restricted __import__
@@ -2615,10 +2615,10 @@ import pandas as pd
         entry_price = 0
         position_type = None  # 'long' or 'short'
 
-        # Risk controls (also supported for legacy signals): SL / TP / trailing exit
+        # Risk controls: SL / TP / trailing exit
         cfg = strategy_config or {}
         exec_cfg = cfg.get('execution') or {}
-        # Signal confirmation / execution timing (legacy mode):
+        # Signal confirmation / execution timing:
         # - bar_close: execute on the same bar close
         # - next_bar_open: execute on next bar open after signal is confirmed on bar close (recommended)
         signal_timing = str(exec_cfg.get('signalTiming') or 'next_bar_open').strip().lower()
@@ -2639,7 +2639,7 @@ import pandas as pd
         highest_since_entry = None
         lowest_since_entry = None
 
-        # --- Position / scaling config (make old-format strategies support the same backtest modal features) ---
+        # --- Position / scaling config (normalize strategy config to the backtest modal shape) ---
         pos_cfg = cfg.get('position') or {}
         entry_pct_cfg = float(pos_cfg.get('entryPct') if pos_cfg.get('entryPct') is not None else 1.0)  # expected 0~1
         # Accept both 0~1 and 0~100 inputs (some clients may send percent units).
@@ -2689,7 +2689,7 @@ import pandas as pd
         last_trend_reduce_anchor = None
         last_adverse_reduce_anchor = None
         
-        # Apply execution timing to avoid look-ahead bias in legacy signals (buy/sell series):
+        # Apply execution timing to avoid look-ahead bias in buy/sell signal series:
         # If signal is computed on bar close, realistic execution is next bar open.
         signals_exec = signals
         if signal_timing in ['next_bar_open', 'next_open', 'nextopen', 'next']:

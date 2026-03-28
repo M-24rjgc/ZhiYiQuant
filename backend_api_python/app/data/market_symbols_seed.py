@@ -1,7 +1,7 @@
 """
 Market symbols seed data and lookup functions.
 
-Data is stored in PostgreSQL table `qd_market_symbols` (initialized via migrations/init.sql).
+Data is stored in the local SQLite table `zhiyiquant_market_symbols` (initialized via migrations/init.sql).
 This module provides helper functions to query hot symbols, search, and get symbol names.
 """
 
@@ -43,7 +43,7 @@ def get_hot_symbols(market: str, limit: int = 10) -> List[Dict]:
             cur = db.cursor()
             cur.execute(
                 """
-                SELECT market, symbol, name FROM qd_market_symbols
+                SELECT market, symbol, name FROM zhiyiquant_market_symbols
                 WHERE market = ? AND is_active = 1 AND is_hot = 1
                 ORDER BY sort_order DESC
                 LIMIT ?
@@ -75,7 +75,6 @@ def search_symbols(market: str, keyword: str, limit: int = 20) -> List[Dict]:
     if not market or not kw:
         return []
     
-    # Use ILIKE for case-insensitive search in PostgreSQL
     pattern = f'%{kw}%'
     
     try:
@@ -83,7 +82,7 @@ def search_symbols(market: str, keyword: str, limit: int = 20) -> List[Dict]:
             cur = db.cursor()
             cur.execute(
                 """
-                SELECT market, symbol, name FROM qd_market_symbols
+                SELECT market, symbol, name FROM zhiyiquant_market_symbols
                 WHERE market = ? AND is_active = 1
                   AND (UPPER(symbol) LIKE UPPER(?) OR UPPER(name) LIKE UPPER(?))
                 ORDER BY sort_order DESC
@@ -144,7 +143,7 @@ def get_symbol_name(market: str, symbol: str) -> Optional[str]:
             cur = db.cursor()
             for cand in candidate_symbols:
                 cur.execute(
-                    "SELECT name FROM qd_market_symbols WHERE market = ? AND UPPER(symbol) = ?",
+                    "SELECT name FROM zhiyiquant_market_symbols WHERE market = ? AND UPPER(symbol) = ?",
                     (m, cand.upper())
                 )
                 row = cur.fetchone()
@@ -175,7 +174,7 @@ def get_all_symbols(market: str = None) -> List[Dict]:
                 cur.execute(
                     """
                     SELECT market, symbol, name, exchange, currency, is_hot, sort_order
-                    FROM qd_market_symbols
+                    FROM zhiyiquant_market_symbols
                     WHERE market = ? AND is_active = 1
                     ORDER BY sort_order DESC
                     """,
@@ -185,7 +184,7 @@ def get_all_symbols(market: str = None) -> List[Dict]:
                 cur.execute(
                     """
                     SELECT market, symbol, name, exchange, currency, is_hot, sort_order
-                    FROM qd_market_symbols
+                    FROM zhiyiquant_market_symbols
                     WHERE is_active = 1
                     ORDER BY market, sort_order DESC
                     """

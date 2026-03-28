@@ -38,7 +38,7 @@ wheels/
 .env.local
 
 # Local runtime data (do not commit)
-quantdinger.db
+zhiyiquant.db
 /data/
 /logs/
 /build_sidecar/

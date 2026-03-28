@@ -1,8 +1,8 @@
 [package]
 name = "zhiyiquant-desktop"
-version = "2.2.0"
-description = "ZhiYiQuant desktop application built with Tauri 2"
-authors = ["ZhiYiQuant Team"]
+version = "1.0.0"
+description = "ZhiyiQuant desktop application built with Tauri 2"
+authors = ["ZhiyiQuant Team"]
 license = "Apache-2.0"
 repository = "https://github.com/M-24rjgc/ZhiYiQuant"
 edition = "2021"

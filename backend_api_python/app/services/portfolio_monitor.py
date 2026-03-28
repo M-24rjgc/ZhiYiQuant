@@ -1,4 +1,4 @@
-﻿"""
+"""
 Portfolio Monitor Service.
 Runs scheduled AI analysis on manual positions and sends notifications.
 """
@@ -79,6 +79,39 @@ def _safe_json_loads(value, default=None):
     return default
 
 
+def _ensure_position_monitors_table(db) -> None:
+    cur = db.cursor()
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS zhiyiquant_position_monitors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES zhiyiquant_users(id) ON DELETE CASCADE,
+            name TEXT DEFAULT '',
+            position_ids TEXT DEFAULT '[]',
+            monitor_type TEXT DEFAULT 'ai',
+            config TEXT DEFAULT '{}',
+            notification_config TEXT DEFAULT '{}',
+            is_active INTEGER DEFAULT 1,
+            next_run_at TIMESTAMP,
+            last_run_at TIMESTAMP,
+            last_result TEXT DEFAULT '{}',
+            run_count INTEGER DEFAULT 0,
+            last_error TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    cur.execute("PRAGMA table_info(zhiyiquant_position_monitors)")
+    columns = {str(row.get('name') or '').strip() for row in (cur.fetchall() or [])}
+    if 'last_result' not in columns:
+        cur.execute("ALTER TABLE zhiyiquant_position_monitors ADD COLUMN last_result TEXT DEFAULT '{}'")
+    if 'run_count' not in columns:
+        cur.execute("ALTER TABLE zhiyiquant_position_monitors ADD COLUMN run_count INTEGER DEFAULT 0")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_zhiyiquant_position_monitors_user_id ON zhiyiquant_position_monitors(user_id)")
+    cur.close()
+
+
 def _get_positions_for_monitor(position_ids: List[int] = None, user_id: int = None) -> List[Dict[str, Any]]:
     """Get positions, optionally filtered by IDs and user_id."""
     try:
@@ -92,7 +125,7 @@ def _get_positions_for_monitor(position_ids: List[int] = None, user_id: int = No
                 cur.execute(
                     f"""
                     SELECT id, market, symbol, name, side, quantity, entry_price, group_name
-                    FROM qd_manual_positions
+                    FROM zhiyiquant_manual_positions
                     WHERE user_id = ? AND id IN ({placeholders})
                     """,
                     [effective_user_id] + list(position_ids)
@@ -101,7 +134,7 @@ def _get_positions_for_monitor(position_ids: List[int] = None, user_id: int = No
                 cur.execute(
                     """
                     SELECT id, market, symbol, name, side, quantity, entry_price, group_name
-                    FROM qd_manual_positions
+                    FROM zhiyiquant_manual_positions
                     WHERE user_id = ?
                     """,
                     (effective_user_id,)
@@ -271,7 +304,7 @@ def _build_comprehensive_report(
     language: str,
     custom_prompt: str = ''
 ) -> str:
-    """Build a comprehensive text report (backward compatible)."""
+    """Build a comprehensive text report."""
     # Use HTML report as the main format
     return _build_html_report(positions, position_analyses, language, custom_prompt)
 
@@ -334,77 +367,77 @@ def _build_html_report(
     # CSS Styles
     css = '''
     <style>
-        .qd-report { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; }
-        .qd-report * { box-sizing: border-box; }
-        .qd-header { text-align: center; color: #fff; padding: 20px 0 30px; }
-        .qd-header h1 { margin: 0 0 8px; font-size: 24px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .qd-header .subtitle { font-size: 13px; opacity: 0.9; }
-        .qd-content { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
-        .qd-section { margin-bottom: 24px; }
-        .qd-section:last-child { margin-bottom: 0; }
-        .qd-section-title { font-size: 16px; font-weight: 600; color: #1a1a2e; margin: 0 0 16px; padding-bottom: 8px; border-bottom: 2px solid #667eea; }
-        .qd-overview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-        .qd-stat-card { background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf3 100%); border-radius: 10px; padding: 16px; text-align: center; }
-        .qd-stat-card .label { font-size: 12px; color: #666; margin-bottom: 6px; }
-        .qd-stat-card .value { font-size: 20px; font-weight: 700; color: #1a1a2e; }
-        .qd-stat-card .value.positive { color: #10b981; }
-        .qd-stat-card .value.negative { color: #ef4444; }
-        .qd-stat-card .percent { font-size: 12px; font-weight: 500; margin-left: 4px; }
-        .qd-rec-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-        .qd-rec-card { border-radius: 10px; padding: 16px; text-align: center; }
-        .qd-rec-card.buy { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); }
-        .qd-rec-card.sell { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); }
-        .qd-rec-card.hold { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
-        .qd-rec-card .emoji { font-size: 28px; margin-bottom: 8px; }
-        .qd-rec-card .count { font-size: 24px; font-weight: 700; }
-        .qd-rec-card.buy .count { color: #059669; }
-        .qd-rec-card.sell .count { color: #dc2626; }
-        .qd-rec-card.hold .count { color: #d97706; }
-        .qd-rec-card .label { font-size: 13px; color: #666; margin-top: 4px; }
-        .qd-position { background: #f8fafc; border-radius: 12px; margin-bottom: 16px; overflow: hidden; border: 1px solid #e2e8f0; }
-        .qd-position:last-child { margin-bottom: 0; }
-        .qd-pos-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #fff; cursor: default; }
-        .qd-pos-symbol { display: flex; align-items: center; gap: 12px; }
-        .qd-pos-symbol .icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fff; }
-        .qd-pos-symbol .icon.buy { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-        .qd-pos-symbol .icon.sell { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
-        .qd-pos-symbol .icon.hold { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
-        .qd-pos-symbol .name { font-weight: 600; font-size: 15px; color: #1a1a2e; }
-        .qd-pos-symbol .market { font-size: 12px; color: #666; }
-        .qd-pos-decision { text-align: right; }
-        .qd-pos-decision .decision-tag { display: inline-block; padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: 13px; }
-        .qd-pos-decision .decision-tag.buy { background: #d1fae5; color: #059669; }
-        .qd-pos-decision .decision-tag.sell { background: #fee2e2; color: #dc2626; }
-        .qd-pos-decision .decision-tag.hold { background: #fef3c7; color: #d97706; }
-        .qd-pos-decision .confidence { font-size: 12px; color: #666; margin-top: 4px; }
-        .qd-pos-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #e2e8f0; }
-        .qd-pos-stats .stat { background: #fff; padding: 12px; text-align: center; }
-        .qd-pos-stats .stat .label { font-size: 11px; color: #666; margin-bottom: 4px; }
-        .qd-pos-stats .stat .value { font-size: 14px; font-weight: 600; color: #1a1a2e; }
-        .qd-pos-stats .stat .value.positive { color: #10b981; }
-        .qd-pos-stats .stat .value.negative { color: #ef4444; }
-        .qd-pos-reasoning { padding: 16px; background: #fff; border-top: 1px solid #e2e8f0; }
-        .qd-pos-reasoning .label { font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px; }
-        .qd-pos-reasoning .text { font-size: 13px; color: #374151; line-height: 1.6; }
-        .qd-collapsible { border-top: 1px solid #e2e8f0; }
-        .qd-collapsible input[type="checkbox"] { display: none; }
-        .qd-collapsible-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f1f5f9; cursor: pointer; user-select: none; }
-        .qd-collapsible-header:hover { background: #e2e8f0; }
-        .qd-collapsible-header .title { font-size: 13px; font-weight: 600; color: #475569; }
-        .qd-collapsible-header .arrow { transition: transform 0.2s; color: #94a3b8; display: inline-block; }
-        .qd-collapsible-content { display: none; padding: 16px; background: #fff; font-size: 13px; color: #475569; line-height: 1.7; border-top: 1px solid #e2e8f0; }
-        .qd-collapsible input[type="checkbox"]:checked ~ .qd-collapsible-content { display: block; }
-        .qd-collapsible input[type="checkbox"]:checked + .qd-collapsible-header .arrow { transform: rotate(180deg); }
-        .qd-user-focus { background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%); border-radius: 10px; padding: 16px; font-size: 13px; color: #5b21b6; line-height: 1.6; }
-        .qd-footer { text-align: center; padding: 20px 0 0; font-size: 12px; color: #666; border-top: 1px solid #e2e8f0; margin-top: 24px; }
-        .qd-footer .time { margin-bottom: 4px; }
-        .qd-footer .disclaimer { opacity: 0.8; }
-        .qd-error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; color: #dc2626; font-size: 13px; }
+        .zhiyiquant-report { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; }
+        .zhiyiquant-report * { box-sizing: border-box; }
+        .zhiyiquant-header { text-align: center; color: #fff; padding: 20px 0 30px; }
+        .zhiyiquant-header h1 { margin: 0 0 8px; font-size: 24px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .zhiyiquant-header .subtitle { font-size: 13px; opacity: 0.9; }
+        .zhiyiquant-content { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
+        .zhiyiquant-section { margin-bottom: 24px; }
+        .zhiyiquant-section:last-child { margin-bottom: 0; }
+        .zhiyiquant-section-title { font-size: 16px; font-weight: 600; color: #1a1a2e; margin: 0 0 16px; padding-bottom: 8px; border-bottom: 2px solid #667eea; }
+        .zhiyiquant-overview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .zhiyiquant-stat-card { background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf3 100%); border-radius: 10px; padding: 16px; text-align: center; }
+        .zhiyiquant-stat-card .label { font-size: 12px; color: #666; margin-bottom: 6px; }
+        .zhiyiquant-stat-card .value { font-size: 20px; font-weight: 700; color: #1a1a2e; }
+        .zhiyiquant-stat-card .value.positive { color: #10b981; }
+        .zhiyiquant-stat-card .value.negative { color: #ef4444; }
+        .zhiyiquant-stat-card .percent { font-size: 12px; font-weight: 500; margin-left: 4px; }
+        .zhiyiquant-rec-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .zhiyiquant-rec-card { border-radius: 10px; padding: 16px; text-align: center; }
+        .zhiyiquant-rec-card.buy { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); }
+        .zhiyiquant-rec-card.sell { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); }
+        .zhiyiquant-rec-card.hold { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
+        .zhiyiquant-rec-card .emoji { font-size: 28px; margin-bottom: 8px; }
+        .zhiyiquant-rec-card .count { font-size: 24px; font-weight: 700; }
+        .zhiyiquant-rec-card.buy .count { color: #059669; }
+        .zhiyiquant-rec-card.sell .count { color: #dc2626; }
+        .zhiyiquant-rec-card.hold .count { color: #d97706; }
+        .zhiyiquant-rec-card .label { font-size: 13px; color: #666; margin-top: 4px; }
+        .zhiyiquant-position { background: #f8fafc; border-radius: 12px; margin-bottom: 16px; overflow: hidden; border: 1px solid #e2e8f0; }
+        .zhiyiquant-position:last-child { margin-bottom: 0; }
+        .zhiyiquant-pos-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #fff; cursor: default; }
+        .zhiyiquant-pos-symbol { display: flex; align-items: center; gap: 12px; }
+        .zhiyiquant-pos-symbol .icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fff; }
+        .zhiyiquant-pos-symbol .icon.buy { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .zhiyiquant-pos-symbol .icon.sell { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .zhiyiquant-pos-symbol .icon.hold { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .zhiyiquant-pos-symbol .name { font-weight: 600; font-size: 15px; color: #1a1a2e; }
+        .zhiyiquant-pos-symbol .market { font-size: 12px; color: #666; }
+        .zhiyiquant-pos-decision { text-align: right; }
+        .zhiyiquant-pos-decision .decision-tag { display: inline-block; padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: 13px; }
+        .zhiyiquant-pos-decision .decision-tag.buy { background: #d1fae5; color: #059669; }
+        .zhiyiquant-pos-decision .decision-tag.sell { background: #fee2e2; color: #dc2626; }
+        .zhiyiquant-pos-decision .decision-tag.hold { background: #fef3c7; color: #d97706; }
+        .zhiyiquant-pos-decision .confidence { font-size: 12px; color: #666; margin-top: 4px; }
+        .zhiyiquant-pos-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #e2e8f0; }
+        .zhiyiquant-pos-stats .stat { background: #fff; padding: 12px; text-align: center; }
+        .zhiyiquant-pos-stats .stat .label { font-size: 11px; color: #666; margin-bottom: 4px; }
+        .zhiyiquant-pos-stats .stat .value { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+        .zhiyiquant-pos-stats .stat .value.positive { color: #10b981; }
+        .zhiyiquant-pos-stats .stat .value.negative { color: #ef4444; }
+        .zhiyiquant-pos-reasoning { padding: 16px; background: #fff; border-top: 1px solid #e2e8f0; }
+        .zhiyiquant-pos-reasoning .label { font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px; }
+        .zhiyiquant-pos-reasoning .text { font-size: 13px; color: #374151; line-height: 1.6; }
+        .zhiyiquant-collapsible { border-top: 1px solid #e2e8f0; }
+        .zhiyiquant-collapsible input[type="checkbox"] { display: none; }
+        .zhiyiquant-collapsible-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f1f5f9; cursor: pointer; user-select: none; }
+        .zhiyiquant-collapsible-header:hover { background: #e2e8f0; }
+        .zhiyiquant-collapsible-header .title { font-size: 13px; font-weight: 600; color: #475569; }
+        .zhiyiquant-collapsible-header .arrow { transition: transform 0.2s; color: #94a3b8; display: inline-block; }
+        .zhiyiquant-collapsible-content { display: none; padding: 16px; background: #fff; font-size: 13px; color: #475569; line-height: 1.7; border-top: 1px solid #e2e8f0; }
+        .zhiyiquant-collapsible input[type="checkbox"]:checked ~ .zhiyiquant-collapsible-content { display: block; }
+        .zhiyiquant-collapsible input[type="checkbox"]:checked + .zhiyiquant-collapsible-header .arrow { transform: rotate(180deg); }
+        .zhiyiquant-user-focus { background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%); border-radius: 10px; padding: 16px; font-size: 13px; color: #5b21b6; line-height: 1.6; }
+        .zhiyiquant-footer { text-align: center; padding: 20px 0 0; font-size: 12px; color: #666; border-top: 1px solid #e2e8f0; margin-top: 24px; }
+        .zhiyiquant-footer .time { margin-bottom: 4px; }
+        .zhiyiquant-footer .disclaimer { opacity: 0.8; }
+        .zhiyiquant-error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; color: #dc2626; font-size: 13px; }
         @media (max-width: 600px) {
-            .qd-report { padding: 12px; border-radius: 0; }
-            .qd-overview-grid { grid-template-columns: repeat(2, 1fr); }
-            .qd-rec-grid { grid-template-columns: repeat(3, 1fr); }
-            .qd-pos-stats { grid-template-columns: repeat(2, 1fr); }
+            .zhiyiquant-report { padding: 12px; border-radius: 0; }
+            .zhiyiquant-overview-grid { grid-template-columns: repeat(2, 1fr); }
+            .zhiyiquant-rec-grid { grid-template-columns: repeat(3, 1fr); }
+            .zhiyiquant-pos-stats { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
     '''
@@ -415,29 +448,29 @@ def _build_html_report(
     
     html = f'''
     {css}
-    <div class="qd-report">
-        <div class="qd-header">
+    <div class="zhiyiquant-report">
+        <div class="zhiyiquant-header">
             <h1>{texts['title']}</h1>
             <div class="subtitle">{texts['subtitle']}</div>
         </div>
-        <div class="qd-content">
+        <div class="zhiyiquant-content">
             <!-- Overview Section -->
-            <div class="qd-section">
-                <h2 class="qd-section-title">{texts['overview']}</h2>
-                <div class="qd-overview-grid">
-                    <div class="qd-stat-card">
+            <div class="zhiyiquant-section">
+                <h2 class="zhiyiquant-section-title">{texts['overview']}</h2>
+                <div class="zhiyiquant-overview-grid">
+                    <div class="zhiyiquant-stat-card">
                         <div class="label">{texts['positions']}</div>
                         <div class="value">{len(positions)}</div>
                     </div>
-                    <div class="qd-stat-card">
+                    <div class="zhiyiquant-stat-card">
                         <div class="label">{texts['total_value']}</div>
                         <div class="value">${total_market_value:,.2f}</div>
                     </div>
-                    <div class="qd-stat-card">
+                    <div class="zhiyiquant-stat-card">
                         <div class="label">{texts['total_cost']}</div>
                         <div class="value">${total_cost:,.2f}</div>
                     </div>
-                    <div class="qd-stat-card">
+                    <div class="zhiyiquant-stat-card">
                         <div class="label">{texts['total_pnl']}</div>
                         <div class="value {pnl_class}">{pnl_sign}${total_pnl:,.2f}<span class="percent">({pnl_sign}{total_pnl_percent:.1f}%)</span></div>
                     </div>
@@ -445,20 +478,20 @@ def _build_html_report(
             </div>
             
             <!-- AI Recommendations Section -->
-            <div class="qd-section">
-                <h2 class="qd-section-title">{texts['ai_recommendations']}</h2>
-                <div class="qd-rec-grid">
-                    <div class="qd-rec-card buy">
+            <div class="zhiyiquant-section">
+                <h2 class="zhiyiquant-section-title">{texts['ai_recommendations']}</h2>
+                <div class="zhiyiquant-rec-grid">
+                    <div class="zhiyiquant-rec-card buy">
                         <div class="emoji">🟢</div>
                         <div class="count">{buy_count}</div>
                         <div class="label">{texts['buy']}</div>
                     </div>
-                    <div class="qd-rec-card sell">
+                    <div class="zhiyiquant-rec-card sell">
                         <div class="emoji">🔴</div>
                         <div class="count">{sell_count}</div>
                         <div class="label">{texts['sell']}</div>
                     </div>
-                    <div class="qd-rec-card hold">
+                    <div class="zhiyiquant-rec-card hold">
                         <div class="emoji">🟡</div>
                         <div class="count">{hold_count}</div>
                         <div class="label">{texts['hold']}</div>
@@ -467,8 +500,8 @@ def _build_html_report(
             </div>
             
             <!-- Position Analysis Section -->
-            <div class="qd-section">
-                <h2 class="qd-section-title">{texts['position_analysis']}</h2>
+            <div class="zhiyiquant-section">
+                <h2 class="zhiyiquant-section-title">{texts['position_analysis']}</h2>
     '''
     
     for pa in position_analyses:
@@ -479,9 +512,9 @@ def _build_html_report(
         
         if pa.get('error'):
             html += f'''
-                <div class="qd-position">
-                    <div class="qd-pos-header">
-                        <div class="qd-pos-symbol">
+                <div class="zhiyiquant-position">
+                    <div class="zhiyiquant-pos-header">
+                        <div class="zhiyiquant-pos-symbol">
                             <div class="icon hold">⚠️</div>
                             <div>
                                 <div class="name">{name}</div>
@@ -489,7 +522,7 @@ def _build_html_report(
                             </div>
                         </div>
                     </div>
-                    <div class="qd-error" style="margin: 16px;">{texts['analysis_failed']}: {pa.get('error')}</div>
+                    <div class="zhiyiquant-error" style="margin: 16px;">{texts['analysis_failed']}: {pa.get('error')}</div>
                 </div>
             '''
             continue
@@ -516,21 +549,21 @@ def _build_html_report(
         risk_report = pa.get('risk_report', '')
         
         html += f'''
-                <div class="qd-position">
-                    <div class="qd-pos-header">
-                        <div class="qd-pos-symbol">
+                <div class="zhiyiquant-position">
+                    <div class="zhiyiquant-pos-header">
+                        <div class="zhiyiquant-pos-symbol">
                             <div class="icon {decision_lower}">{decision[0]}</div>
                             <div>
                                 <div class="name">{name}</div>
                                 <div class="market">{market}/{symbol}</div>
                             </div>
                         </div>
-                        <div class="qd-pos-decision">
+                        <div class="zhiyiquant-pos-decision">
                             <div class="decision-tag {decision_lower}">{decision_text}</div>
                             <div class="confidence">{texts['confidence']}: {confidence}%</div>
                         </div>
                     </div>
-                    <div class="qd-pos-stats">
+                    <div class="zhiyiquant-pos-stats">
                         <div class="stat">
                             <div class="label">{texts['current_price']}</div>
                             <div class="value">${current_price:.4f}</div>
@@ -553,7 +586,7 @@ def _build_html_report(
         # Reasoning summary
         if reasoning:
             html += f'''
-                    <div class="qd-pos-reasoning">
+                    <div class="zhiyiquant-pos-reasoning">
                         <div class="label">{texts['reasoning']}</div>
                         <div class="text">{reasoning[:500]}{'...' if len(reasoning) > 500 else ''}</div>
                     </div>
@@ -566,13 +599,13 @@ def _build_html_report(
         if trader_reasoning:
             trader_id = f"trader_{section_id_base}"
             html += f'''
-                    <div class="qd-collapsible">
+                    <div class="zhiyiquant-collapsible">
                         <input type="checkbox" id="{trader_id}">
-                        <label for="{trader_id}" class="qd-collapsible-header">
+                        <label for="{trader_id}" class="zhiyiquant-collapsible-header">
                             <span class="title">{texts['trader_report']}</span>
                             <span class="arrow">▼</span>
                         </label>
-                        <div class="qd-collapsible-content">{trader_reasoning.replace(chr(10), '<br>')}</div>
+                        <div class="zhiyiquant-collapsible-content">{trader_reasoning.replace(chr(10), '<br>')}</div>
                     </div>
             '''
         
@@ -580,13 +613,13 @@ def _build_html_report(
         if overview_report:
             overview_id = f"overview_{section_id_base}"
             html += f'''
-                    <div class="qd-collapsible">
+                    <div class="zhiyiquant-collapsible">
                         <input type="checkbox" id="{overview_id}">
-                        <label for="{overview_id}" class="qd-collapsible-header">
+                        <label for="{overview_id}" class="zhiyiquant-collapsible-header">
                             <span class="title">{texts['overview_report']}</span>
                             <span class="arrow">▼</span>
                         </label>
-                        <div class="qd-collapsible-content">{overview_report.replace(chr(10), '<br>')}</div>
+                        <div class="zhiyiquant-collapsible-content">{overview_report.replace(chr(10), '<br>')}</div>
                     </div>
             '''
         
@@ -594,13 +627,13 @@ def _build_html_report(
         if risk_report:
             risk_id = f"risk_{section_id_base}"
             html += f'''
-                    <div class="qd-collapsible">
+                    <div class="zhiyiquant-collapsible">
                         <input type="checkbox" id="{risk_id}">
-                        <label for="{risk_id}" class="qd-collapsible-header">
+                        <label for="{risk_id}" class="zhiyiquant-collapsible-header">
                             <span class="title">{texts['risk_report']}</span>
                             <span class="arrow">▼</span>
                         </label>
-                        <div class="qd-collapsible-content">{risk_report.replace(chr(10), '<br>')}</div>
+                        <div class="zhiyiquant-collapsible-content">{risk_report.replace(chr(10), '<br>')}</div>
                     </div>
             '''
         
@@ -612,15 +645,15 @@ def _build_html_report(
     if custom_prompt:
         html += f'''
             </div>
-            <div class="qd-section">
-                <h2 class="qd-section-title">{texts['user_focus']}</h2>
-                <div class="qd-user-focus">{custom_prompt}</div>
+            <div class="zhiyiquant-section">
+                <h2 class="zhiyiquant-section-title">{texts['user_focus']}</h2>
+                <div class="zhiyiquant-user-focus">{custom_prompt}</div>
         '''
     
     # Footer
     html += f'''
             </div>
-            <div class="qd-footer">
+            <div class="zhiyiquant-footer">
                 <div class="time">{texts['generated_at']}: {time.strftime('%Y-%m-%d %H:%M:%S')}</div>
                 <div class="disclaimer">{texts['disclaimer']}</div>
             </div>
@@ -774,7 +807,7 @@ def _send_monitor_notification(
                             cur = db.cursor()
                             cur.execute(
                                 """
-                                INSERT INTO qd_strategy_notifications
+                                INSERT INTO zhiyiquant_strategy_notifications
                                 (user_id, strategy_id, symbol, signal_type, channels, title, message, payload_json, created_at)
                                 VALUES (?, NULL, ?, ?, ?, ?, ?, ?, NOW())
                                 """,
@@ -821,7 +854,7 @@ def _send_monitor_notification(
                         cur = db.cursor()
                         cur.execute(
                             """
-                            INSERT INTO qd_strategy_notifications
+                            INSERT INTO zhiyiquant_strategy_notifications
                             (user_id, strategy_id, symbol, signal_type, channels, title, message, payload_json, created_at)
                             VALUES (?, NULL, ?, ?, ?, ?, ?, ?, NOW())
                             """,
@@ -888,11 +921,12 @@ def run_single_monitor(monitor_id: int, override_language: str = None, user_id: 
         effective_user_id = user_id if user_id is not None else DEFAULT_USER_ID
         
         with get_db_connection() as db:
+            _ensure_position_monitors_table(db)
             cur = db.cursor()
             cur.execute(
                 """
                 SELECT id, user_id, name, position_ids, monitor_type, config, notification_config
-                FROM qd_position_monitors
+                FROM zhiyiquant_position_monitors
                 WHERE id = ? AND user_id = ?
                 """,
                 (monitor_id, effective_user_id)
@@ -931,10 +965,11 @@ def run_single_monitor(monitor_id: int, override_language: str = None, user_id: 
         interval_minutes = int(config.get('interval_minutes') or 60)
         
         with get_db_connection() as db:
+            _ensure_position_monitors_table(db)
             cur = db.cursor()
             cur.execute(
                 """
-                UPDATE qd_position_monitors
+                UPDATE zhiyiquant_position_monitors
                 SET last_run_at = NOW(), 
                     next_run_at = NOW() + INTERVAL '%s minutes', 
                     last_result = ?, 
@@ -986,8 +1021,8 @@ def _check_position_alerts():
                 SELECT a.id, a.user_id, a.position_id, a.market, a.symbol, a.alert_type, a.threshold,
                        a.notification_config, a.is_triggered, a.last_triggered_at, a.repeat_interval,
                        p.entry_price, p.quantity, p.side, p.name as position_name
-                FROM qd_position_alerts a
-                LEFT JOIN qd_manual_positions p ON a.position_id = p.id
+                FROM zhiyiquant_position_alerts a
+                LEFT JOIN zhiyiquant_manual_positions p ON a.position_id = p.id
                 WHERE a.is_active = 1
                 """
             )
@@ -1086,7 +1121,7 @@ def _check_position_alerts():
                         cur = db.cursor()
                         cur.execute(
                             """
-                            UPDATE qd_position_alerts
+                            UPDATE zhiyiquant_position_alerts
                             SET is_triggered = 1, last_triggered_at = NOW(), trigger_count = trigger_count + 1, updated_at = NOW()
                             WHERE id = ?
                             """,
@@ -1108,7 +1143,7 @@ def _check_position_alerts():
                                     cur = db.cursor()
                                     cur.execute(
                                         """
-                                        INSERT INTO qd_strategy_notifications
+                                        INSERT INTO zhiyiquant_strategy_notifications
                                         (user_id, strategy_id, symbol, signal_type, channels, title, message, payload_json, created_at)
                                         VALUES (?, NULL, ?, ?, ?, ?, ?, ?, NOW())
                                         """,
@@ -1153,7 +1188,7 @@ def notify_strategy_signal_for_positions(market: str, symbol: str, signal_type: 
                 cur.execute(
                     """
                     SELECT id, user_id, market, symbol, name, side, quantity, entry_price, group_name
-                    FROM qd_manual_positions
+                    FROM zhiyiquant_manual_positions
                     WHERE user_id = ? AND symbol = ?
                     """,
                     (user_id, symbol)
@@ -1162,7 +1197,7 @@ def notify_strategy_signal_for_positions(market: str, symbol: str, signal_type: 
                 cur.execute(
                     """
                     SELECT id, user_id, market, symbol, name, side, quantity, entry_price, group_name
-                    FROM qd_manual_positions
+                    FROM zhiyiquant_manual_positions
                     WHERE symbol = ?
                     """,
                     (symbol,)
@@ -1197,10 +1232,11 @@ def notify_strategy_signal_for_positions(market: str, symbol: str, signal_type: 
             
             # Save browser notification
             with get_db_connection() as db:
+                _ensure_position_monitors_table(db)
                 cur = db.cursor()
                 cur.execute(
                     """
-                    INSERT INTO qd_strategy_notifications
+                    INSERT INTO zhiyiquant_strategy_notifications
                     (user_id, strategy_id, symbol, signal_type, channels, title, message, payload_json, created_at)
                     VALUES (?, NULL, ?, ?, ?, ?, ?, ?, NOW())
                     """,
@@ -1230,7 +1266,7 @@ def _monitor_loop():
                 cur = db.cursor()
                 cur.execute(
                     """
-                    SELECT id, user_id FROM qd_position_monitors
+                    SELECT id, user_id FROM zhiyiquant_position_monitors
                     WHERE is_active = 1 AND next_run_at <= NOW()
                     ORDER BY next_run_at ASC
                     LIMIT 10
@@ -1282,3 +1318,4 @@ def stop_monitor_service():
         _monitor_thread.join(timeout=5)
         _monitor_thread = None
     logger.info("Portfolio monitor service stopped")
+

@@ -148,7 +148,7 @@ class LLMService:
         
         return PROVIDER_CONFIGS[p]["default_model"]
 
-    # Legacy properties for backward compatibility
+    # Property aliases used by existing callers
     @property
     def api_key(self):
         return self.get_api_key()
@@ -412,9 +412,9 @@ class LLMService:
         logger.error(error_msg)
         raise Exception(error_msg)
 
-    # Legacy method for backward compatibility
+    # Alias kept for existing callers
     def call_openrouter_api(self, messages: list, model: str = None, temperature: float = 0.7, use_fallback: bool = True) -> str:
-        """Call LLM API (legacy method name for backward compatibility)."""
+        """Call the LLM API through the current main entrypoint."""
         return self.call_llm_api(messages, model, temperature, use_fallback)
 
     def safe_call_llm(self, system_prompt: str, user_prompt: str, default_structure: Dict[str, Any], 

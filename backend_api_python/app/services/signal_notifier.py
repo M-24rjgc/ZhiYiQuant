@@ -1,4 +1,4 @@
-﻿"""
+"""
 Strategy signal notification service.
 
 This module implements per-strategy notification channels based on the frontend schema:
@@ -93,15 +93,15 @@ class SignalNotifier:
     """
     Notify signal events across channels.
 
-    通知配置说明:
-    - 用户在个人中心配置自己的通知设置（telegram_bot_token, telegram_chat_id, email 等）
-    - 创建策略/监控时，系统自动使用用户配置的通知目标
+    本地通知配置说明:
+    - 在桌面设置中维护通知目标（telegram_bot_token, telegram_chat_id, email 等）
+    - 策略和监控任务会直接读取当前本地配置
 
-    公共服务配置（管理员在系统设置中配置）:
+    应用级发送服务配置:
     - SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, SMTP_USE_TLS
-      (邮件服务，所有用户共用)
+      (桌面应用级邮件发送配置)
     - TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER
-      (短信服务，所有用户共用)
+      (桌面应用级短信发送配置)
 
     可选的环境变量:
     - SIGNAL_NOTIFY_TIMEOUT_SEC: HTTP timeout (default: 6)
@@ -113,7 +113,7 @@ class SignalNotifier:
         except Exception:
             self.timeout_sec = 6.0
 
-        # 公共 SMTP 配置（管理员在系统设置中配置）
+        # 桌面应用级 SMTP 配置
         self.smtp_host = (os.getenv("SMTP_HOST") or "").strip()
         try:
             self.smtp_port = int(os.getenv("SMTP_PORT") or "587")
@@ -346,7 +346,7 @@ class SignalNotifier:
             telegram_lines.append(f"<b>Time (UTC)</b>: <code>{html.escape(ts_iso)}</code>")
         telegram_html = "\n".join([x for x in telegram_lines if x is not None])
 
-        # Email (HTML) message. Keep inline CSS for maximum compatibility.
+        # Email (HTML) message. Keep inline CSS for broad client support.
         email_html = self._build_email_html(
             title_text="ZhiYiQuant Signal",
             strategy_text=t_strategy,
@@ -453,7 +453,7 @@ class SignalNotifier:
                 try:
                     with get_db_connection() as db:
                         cur = db.cursor()
-                        cur.execute("SELECT user_id FROM qd_strategies_trading WHERE id = ?", (strategy_id,))
+                        cur.execute("SELECT user_id FROM zhiyiquant_strategies_trading WHERE id = ?", (strategy_id,))
                         row = cur.fetchone()
                         cur.close()
                     user_id = int((row or {}).get('user_id') or 1)
@@ -463,7 +463,7 @@ class SignalNotifier:
                 cur = db.cursor()
                 cur.execute(
                     """
-                    INSERT INTO qd_strategy_notifications
+                    INSERT INTO zhiyiquant_strategy_notifications
                     (user_id, strategy_id, symbol, signal_type, channels, title, message, payload_json, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
                     """,

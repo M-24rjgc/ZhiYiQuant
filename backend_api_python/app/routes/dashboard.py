@@ -1,4 +1,4 @@
-﻿"""
+"""
 Dashboard APIs (local-first).
 
 Endpoints:
@@ -268,7 +268,7 @@ def _compute_strategy_stats(trades: List[Dict[str, Any]], strategies: List[Dict[
 @login_required
 def summary():
     """
-    Return dashboard summary used by `quantdinger_vue/src/views/dashboard/index.vue`.
+    Return dashboard summary used by the desktop dashboard view.
     """
     try:
         user_id = g.user_id
@@ -279,7 +279,7 @@ def summary():
             cur.execute(
                 """
                 SELECT id, strategy_name, strategy_type, status, initial_capital, trading_config
-                FROM qd_strategies_trading
+                FROM zhiyiquant_strategies_trading
                 WHERE user_id = ?
                 """,
                 (user_id,)
@@ -313,8 +313,8 @@ def summary():
             cur.execute(
                 """
                 SELECT p.*, s.strategy_name, s.initial_capital, s.leverage, s.market_type
-                FROM qd_strategy_positions p
-                LEFT JOIN qd_strategies_trading s ON s.id = p.strategy_id
+                FROM zhiyiquant_strategy_positions p
+                LEFT JOIN zhiyiquant_strategies_trading s ON s.id = p.strategy_id
                 WHERE p.user_id = ?
                 ORDER BY p.updated_at DESC
                 """,
@@ -355,8 +355,8 @@ def summary():
             cur.execute(
                 """
                 SELECT t.*, s.strategy_name
-                FROM qd_strategy_trades t
-                LEFT JOIN qd_strategies_trading s ON s.id = t.strategy_id
+                FROM zhiyiquant_strategy_trades t
+                LEFT JOIN zhiyiquant_strategies_trading s ON s.id = t.strategy_id
                 WHERE t.user_id = ?
                 ORDER BY t.created_at DESC
                 LIMIT 500
@@ -366,7 +366,7 @@ def summary():
             recent_trades_raw = cur.fetchall() or []
             cur.close()
         
-        # Convert datetime to timestamp for frontend compatibility
+        # Convert datetime values to the timestamp format used by the frontend
         recent_trades = []
         for t in recent_trades_raw:
             trade = dict(t)
@@ -553,7 +553,7 @@ def pending_orders():
                        s.market_category AS strategy_market_category,
                        s.execution_mode AS strategy_execution_mode
                 FROM pending_orders o
-                LEFT JOIN qd_strategies_trading s ON s.id = o.strategy_id
+                LEFT JOIN zhiyiquant_strategies_trading s ON s.id = o.strategy_id
                 WHERE o.user_id = ?
                 ORDER BY o.id DESC
                 LIMIT ? OFFSET ?

@@ -188,18 +188,6 @@ curl -X POST http://localhost:5000/api/mt5/close \
 | Trade not allowed | Trading disabled | Enable algo trading in MT5 options |
 | Order rejected | Insufficient margin | Check account balance and margin |
 
-## Docker Deployment
-
-When running ZhiYiQuant in Docker, MT5 trading requires:
-
-1. **Windows host**: Docker Desktop on Windows, or Windows Server
-2. **MT5 on host**: Run MT5 terminal on the Windows host
-3. **Network access**: Container must be able to access the host's MT5 terminal
-
-For Linux/Mac deployments, consider:
-- Running ZhiYiQuant backend on a Windows VM
-- Using a remote Windows server for MT5 connection
-
 ## Security Recommendations
 
 - Use a dedicated trading account

@@ -40,7 +40,7 @@ except ImportError:
 
 
 class TencentDataMixin:
-    """Tencent quote API mixin (mostly for H-Share and legacy fallback)."""
+    """Tencent quote API mixin (mainly for H-Share and fallback flows)."""
     
     # 腾讯 K 线周期映射（注意：腾讯分钟级接口不支持240分钟，4H需要特殊处理）
     TENCENT_PERIOD_MAP = {
@@ -241,7 +241,7 @@ class AShareDataSource(BaseDataSource, TencentDataMixin):
         logger.warning(f"[AShare] 数据管理器获取 {symbol} 失败，尝试传统方式")
         
         # 传统方式：直接调用东方财富
-        klines = self._fetch_eastmoney_ashare_legacy(symbol, timeframe, limit)
+        klines = self._fetch_eastmoney_ashare_fallback(symbol, timeframe, limit)
         if klines:
             klines = self.filter_and_limit(klines, limit, before_time)
             self.log_result(symbol, klines, timeframe)
@@ -258,15 +258,15 @@ class AShareDataSource(BaseDataSource, TencentDataMixin):
         logger.warning(f"AShare {symbol} data fetch failed")
         return []
     
-    def _fetch_eastmoney_ashare_legacy(
+    def _fetch_eastmoney_ashare_fallback(
         self,
         symbol: str,
         timeframe: str,
         limit: int
     ) -> List[Dict[str, Any]]:
         """
-        传统方式获取东方财富数据（兜底用）
-        不使用新的熔断器和限流器，保持原有逻辑
+        使用东方财富接口作为最终兜底。
+        这里保持直接请求路径，避免额外调度层影响。
         """
         return self._fetch_eastmoney_ashare(symbol, timeframe, limit)
     
@@ -459,13 +459,11 @@ class AShareDataSource(BaseDataSource, TencentDataMixin):
         
         # 如果数据管理器失败，使用传统方式作为兜底
         logger.debug(f"[AShare] 数据管理器获取 {symbol} 实时报价失败，尝试传统方式")
-        return self._get_ticker_legacy(symbol)
-    
-    def _get_ticker_legacy(self, symbol: str) -> Dict[str, Any]:
+        return self._get_ticker_fallback(symbol)
+
+    def _get_ticker_fallback(self, symbol: str) -> Dict[str, Any]:
         """
-        传统方式获取实时报价（兜底用）
-        
-        保持原有逻辑，不使用熔断器和限流器
+        使用直接行情接口获取实时报价作为兜底。
         """
         # 优先使用东方财富实时行情 API
         try:

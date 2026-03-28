@@ -64,10 +64,10 @@ def _ensure_closed_positions_table(db):
     cur = db.cursor()
     cur.execute(
         """
-        CREATE TABLE IF NOT EXISTS qd_manual_positions_closed (
+        CREATE TABLE IF NOT EXISTS zhiyiquant_manual_positions_closed (
             id SERIAL PRIMARY KEY,
             original_position_id INTEGER,
-            user_id INTEGER NOT NULL REFERENCES qd_users(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES zhiyiquant_users(id) ON DELETE CASCADE,
             market VARCHAR(50) NOT NULL,
             symbol VARCHAR(50) NOT NULL,
             name VARCHAR(100) DEFAULT '',
@@ -88,8 +88,42 @@ def _ensure_closed_positions_table(db):
         )
         """
     )
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_manual_positions_closed_user_id ON qd_manual_positions_closed(user_id)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_manual_positions_closed_closed_at ON qd_manual_positions_closed(closed_at DESC)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_manual_positions_closed_user_id ON zhiyiquant_manual_positions_closed(user_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_manual_positions_closed_closed_at ON zhiyiquant_manual_positions_closed(closed_at DESC)")
+    cur.close()
+
+
+def _ensure_position_monitors_table(db):
+    """Ensure the monitor table includes the current desktop V1 schema."""
+    cur = db.cursor()
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS zhiyiquant_position_monitors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES zhiyiquant_users(id) ON DELETE CASCADE,
+            name TEXT DEFAULT '',
+            position_ids TEXT DEFAULT '[]',
+            monitor_type TEXT DEFAULT 'ai',
+            config TEXT DEFAULT '{}',
+            notification_config TEXT DEFAULT '{}',
+            is_active INTEGER DEFAULT 1,
+            next_run_at TIMESTAMP,
+            last_run_at TIMESTAMP,
+            last_result TEXT DEFAULT '{}',
+            run_count INTEGER DEFAULT 0,
+            last_error TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    cur.execute("PRAGMA table_info(zhiyiquant_position_monitors)")
+    columns = {str(row.get('name') or '').strip() for row in (cur.fetchall() or [])}
+    if 'last_result' not in columns:
+        cur.execute("ALTER TABLE zhiyiquant_position_monitors ADD COLUMN last_result TEXT DEFAULT '{}'")
+    if 'run_count' not in columns:
+        cur.execute("ALTER TABLE zhiyiquant_position_monitors ADD COLUMN run_count INTEGER DEFAULT 0")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_zhiyiquant_position_monitors_user_id ON zhiyiquant_position_monitors(user_id)")
     cur.close()
 
 
@@ -155,7 +189,7 @@ def get_positions():
             cur.execute(
                 """
                 SELECT id, market, symbol, name, side, quantity, entry_price, entry_time, notes, tags, group_name, created_at, updated_at
-                FROM qd_manual_positions
+                FROM zhiyiquant_manual_positions
                 WHERE user_id = ?
                 ORDER BY id DESC
                 """,
@@ -286,22 +320,33 @@ def add_position():
             cur = db.cursor()
             cur.execute(
                 """
-                INSERT INTO qd_manual_positions 
-                (user_id, market, symbol, name, side, quantity, entry_price, entry_time, notes, tags, group_name, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-                ON CONFLICT(user_id, market, symbol, side, group_name) DO UPDATE SET
-                    name = excluded.name,
-                    quantity = excluded.quantity,
-                    entry_price = excluded.entry_price,
-                    entry_time = excluded.entry_time,
-                    notes = excluded.notes,
-                    tags = excluded.tags,
-                    group_name = excluded.group_name,
-                    updated_at = NOW()
+                SELECT id FROM zhiyiquant_manual_positions
+                WHERE user_id = ? AND market = ? AND symbol = ? AND side = ? AND group_name = ?
                 """,
-                (user_id, market, symbol, name, side, quantity, entry_price, entry_time, notes, tags_json, group_name)
+                (user_id, market, symbol, side, group_name),
             )
-            position_id = cur.lastrowid
+            existing = cur.fetchone()
+
+            if existing:
+                position_id = existing.get('id')
+                cur.execute(
+                    """
+                    UPDATE zhiyiquant_manual_positions
+                    SET name = ?, quantity = ?, entry_price = ?, entry_time = ?, notes = ?, tags = ?, updated_at = NOW()
+                    WHERE id = ?
+                    """,
+                    (name, quantity, entry_price, entry_time, notes, tags_json, position_id),
+                )
+            else:
+                cur.execute(
+                    """
+                    INSERT INTO zhiyiquant_manual_positions 
+                    (user_id, market, symbol, name, side, quantity, entry_price, entry_time, notes, tags, group_name, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    """,
+                    (user_id, market, symbol, name, side, quantity, entry_price, entry_time, notes, tags_json, group_name)
+                )
+                position_id = cur.lastrowid
             db.commit()
             cur.close()
 
@@ -326,7 +371,7 @@ def get_closed_positions():
             _ensure_closed_positions_table(db)
             cur = db.cursor()
             cur.execute(
-                "SELECT COUNT(*) as total FROM qd_manual_positions_closed WHERE user_id = ?",
+                "SELECT COUNT(*) as total FROM zhiyiquant_manual_positions_closed WHERE user_id = ?",
                 (user_id,)
             )
             total_row = cur.fetchone() or {}
@@ -338,7 +383,7 @@ def get_closed_positions():
                        entry_price, entry_time, close_price, close_time,
                        realized_pnl, realized_pnl_percent, hold_seconds,
                        notes, close_note, group_name, created_at, closed_at
-                FROM qd_manual_positions_closed
+                FROM zhiyiquant_manual_positions_closed
                 WHERE user_id = ?
                 ORDER BY id DESC
                 LIMIT ? OFFSET ?
@@ -405,7 +450,7 @@ def close_position(position_id):
             cur.execute(
                 """
                 SELECT id, market, symbol, name, side, quantity, entry_price, entry_time, notes, group_name, created_at
-                FROM qd_manual_positions
+                FROM zhiyiquant_manual_positions
                 WHERE id = ? AND user_id = ?
                 """,
                 (position_id, user_id)
@@ -440,7 +485,7 @@ def close_position(position_id):
 
             cur.execute(
                 """
-                INSERT INTO qd_manual_positions_closed (
+                INSERT INTO zhiyiquant_manual_positions_closed (
                     original_position_id, user_id, market, symbol, name, side, quantity,
                     entry_price, entry_time, close_price, close_time,
                     realized_pnl, realized_pnl_percent, hold_seconds,
@@ -457,7 +502,7 @@ def close_position(position_id):
             )
 
             cur.execute(
-                "DELETE FROM qd_manual_positions WHERE id = ? AND user_id = ?",
+                "DELETE FROM zhiyiquant_manual_positions WHERE id = ? AND user_id = ?",
                 (position_id, user_id)
             )
             db.commit()
@@ -538,7 +583,7 @@ def update_position(position_id):
         with get_db_connection() as db:
             cur = db.cursor()
             cur.execute(
-                f"UPDATE qd_manual_positions SET {', '.join(updates)} WHERE id = ? AND user_id = ?",
+                f"UPDATE zhiyiquant_manual_positions SET {', '.join(updates)} WHERE id = ? AND user_id = ?",
                 params
             )
             db.commit()
@@ -560,7 +605,7 @@ def delete_position(position_id):
         with get_db_connection() as db:
             cur = db.cursor()
             cur.execute(
-                "DELETE FROM qd_manual_positions WHERE id = ? AND user_id = ?",
+                "DELETE FROM zhiyiquant_manual_positions WHERE id = ? AND user_id = ?",
                 (position_id, user_id)
             )
             db.commit()
@@ -587,7 +632,7 @@ def get_portfolio_summary():
             cur.execute(
                 """
                 SELECT id, market, symbol, side, quantity, entry_price
-                FROM qd_manual_positions
+                FROM zhiyiquant_manual_positions
                 WHERE user_id = ?
                 """,
                 (user_id,)
@@ -702,12 +747,13 @@ def get_monitors():
     try:
         user_id = g.user_id
         with get_db_connection() as db:
+            _ensure_position_monitors_table(db)
             cur = db.cursor()
             cur.execute(
                 """
                 SELECT id, name, position_ids, monitor_type, config, notification_config, 
                        is_active, last_run_at, next_run_at, last_result, run_count, created_at, updated_at
-                FROM qd_position_monitors
+                FROM zhiyiquant_position_monitors
                 WHERE user_id = ?
                 ORDER BY id DESC
                 """,
@@ -769,10 +815,11 @@ def add_monitor():
         notification_config_json = json.dumps(notification_config if isinstance(notification_config, dict) else {}, ensure_ascii=False)
         
         with get_db_connection() as db:
+            _ensure_position_monitors_table(db)
             cur = db.cursor()
             cur.execute(
                 """
-                INSERT INTO qd_position_monitors 
+                INSERT INTO zhiyiquant_position_monitors 
                 (user_id, name, position_ids, monitor_type, config, notification_config, is_active, next_run_at, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, NOW() + INTERVAL '%s minutes', NOW(), NOW())
                 """,
@@ -820,7 +867,7 @@ def update_monitor(monitor_id):
             updates.append('config = ?')
             params.append(json.dumps(config if isinstance(config, dict) else {}, ensure_ascii=False))
             
-            # Recalculate next_run_at if interval changed (handled separately for PostgreSQL)
+            # Recalculate next_run_at if the monitor interval changed.
             next_run_interval = int(config.get('interval_minutes') or 60)
         
         if 'notification_config' in data:
@@ -844,9 +891,10 @@ def update_monitor(monitor_id):
         params.append(user_id)
         
         with get_db_connection() as db:
+            _ensure_position_monitors_table(db)
             cur = db.cursor()
             cur.execute(
-                f"UPDATE qd_position_monitors SET {', '.join(updates)} WHERE id = ? AND user_id = ?",
+                f"UPDATE zhiyiquant_position_monitors SET {', '.join(updates)} WHERE id = ? AND user_id = ?",
                 params
             )
             db.commit()
@@ -866,9 +914,10 @@ def delete_monitor(monitor_id):
     try:
         user_id = g.user_id
         with get_db_connection() as db:
+            _ensure_position_monitors_table(db)
             cur = db.cursor()
             cur.execute(
-                "DELETE FROM qd_position_monitors WHERE id = ? AND user_id = ?",
+                "DELETE FROM zhiyiquant_position_monitors WHERE id = ? AND user_id = ?",
                 (monitor_id, user_id)
             )
             db.commit()
@@ -894,6 +943,8 @@ def run_monitor_now(monitor_id):
         from app.services.portfolio_monitor import run_single_monitor
         
         user_id = g.user_id
+        with get_db_connection() as db:
+            _ensure_position_monitors_table(db)
         
         # Get parameters from request body
         data = request.get_json(force=True, silent=True) or {}
@@ -960,8 +1011,8 @@ def get_alerts():
                        a.notification_config, a.is_active, a.is_triggered, a.last_triggered_at,
                        a.trigger_count, a.repeat_interval, a.notes, a.created_at, a.updated_at,
                        p.name as position_name, p.side as position_side
-                FROM qd_position_alerts a
-                LEFT JOIN qd_manual_positions p ON a.position_id = p.id
+                FROM zhiyiquant_position_alerts a
+                LEFT JOIN zhiyiquant_manual_positions p ON a.position_id = p.id
                 WHERE a.user_id = ?
                 ORDER BY a.id DESC
                 """,
@@ -1026,7 +1077,7 @@ def add_alert():
             with get_db_connection() as db:
                 cur = db.cursor()
                 cur.execute(
-                    "SELECT market, symbol FROM qd_manual_positions WHERE id = ? AND user_id = ?",
+                    "SELECT market, symbol FROM zhiyiquant_manual_positions WHERE id = ? AND user_id = ?",
                     (position_id, user_id)
                 )
                 pos = cur.fetchone()
@@ -1050,7 +1101,7 @@ def add_alert():
             existing_alert_id = None
             if position_id:
                 cur.execute(
-                    "SELECT id FROM qd_position_alerts WHERE position_id = ? AND user_id = ?",
+                    "SELECT id FROM zhiyiquant_position_alerts WHERE position_id = ? AND user_id = ?",
                     (position_id, user_id)
                 )
                 existing = cur.fetchone()
@@ -1061,7 +1112,7 @@ def add_alert():
                 # Update existing alert instead of creating a new one
                 cur.execute(
                     """
-                    UPDATE qd_position_alerts 
+                    UPDATE zhiyiquant_position_alerts 
                     SET alert_type = ?, threshold = ?, notification_config = ?, 
                         is_active = ?, is_triggered = 0, repeat_interval = ?, notes = ?, updated_at = NOW()
                     WHERE id = ?
@@ -1074,7 +1125,7 @@ def add_alert():
                 # Create new alert
                 cur.execute(
                     """
-                    INSERT INTO qd_position_alerts 
+                    INSERT INTO zhiyiquant_position_alerts 
                     (user_id, position_id, market, symbol, alert_type, threshold, notification_config, 
                      is_active, repeat_interval, notes, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
@@ -1144,7 +1195,7 @@ def update_alert(alert_id):
         with get_db_connection() as db:
             cur = db.cursor()
             cur.execute(
-                f"UPDATE qd_position_alerts SET {', '.join(updates)} WHERE id = ? AND user_id = ?",
+                f"UPDATE zhiyiquant_position_alerts SET {', '.join(updates)} WHERE id = ? AND user_id = ?",
                 params
             )
             db.commit()
@@ -1166,7 +1217,7 @@ def delete_alert(alert_id):
         with get_db_connection() as db:
             cur = db.cursor()
             cur.execute(
-                "DELETE FROM qd_position_alerts WHERE id = ? AND user_id = ?",
+                "DELETE FROM zhiyiquant_position_alerts WHERE id = ? AND user_id = ?",
                 (alert_id, user_id)
             )
             db.commit()
@@ -1192,7 +1243,7 @@ def get_groups():
             cur.execute(
                 """
                 SELECT group_name, COUNT(*) as count
-                FROM qd_manual_positions
+                FROM zhiyiquant_manual_positions
                 WHERE user_id = ? AND group_name != ''
                 GROUP BY group_name
                 ORDER BY group_name
@@ -1203,7 +1254,7 @@ def get_groups():
             
             # Also get count of ungrouped
             cur.execute(
-                "SELECT COUNT(*) as count FROM qd_manual_positions WHERE user_id = ? AND (group_name IS NULL OR group_name = '')",
+                "SELECT COUNT(*) as count FROM zhiyiquant_manual_positions WHERE user_id = ? AND (group_name IS NULL OR group_name = '')",
                 (user_id,)
             )
             ungrouped = cur.fetchone()
@@ -1249,7 +1300,7 @@ def rename_group():
         with get_db_connection() as db:
             cur = db.cursor()
             cur.execute(
-                "UPDATE qd_manual_positions SET group_name = ?, updated_at = NOW() WHERE user_id = ? AND group_name = ?",
+                "UPDATE zhiyiquant_manual_positions SET group_name = ?, updated_at = NOW() WHERE user_id = ? AND group_name = ?",
                 (new_name, user_id, old_name)
             )
             db.commit()

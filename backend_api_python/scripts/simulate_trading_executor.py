@@ -1,4 +1,4 @@
-﻿"""
+"""
 Local simulation for TradingExecutor.
 
 Goal:
@@ -215,7 +215,7 @@ def _insert_strategy(
     trailing_stop_pct: float,
 ) -> int:
     """
-    Insert one strategy row into qd_strategies_trading and return its id.
+    Insert one strategy row into zhiyiquant_strategies_trading and return its id.
     """
     now = int(time.time())
     trading_config = {
@@ -250,7 +250,7 @@ def _insert_strategy(
         cur = db.cursor()
         cur.execute(
             """
-            INSERT INTO qd_strategies_trading
+            INSERT INTO zhiyiquant_strategies_trading
             (strategy_name, strategy_type, market_category, execution_mode, notification_config,
              status, symbol, timeframe, initial_capital, leverage, market_type,
              exchange_config, indicator_config, trading_config, ai_model_config, decide_interval,
@@ -361,7 +361,7 @@ def main() -> None:
     # Stop strategy by updating DB status.
     with get_db_connection() as db:
         cur = db.cursor()
-        cur.execute("UPDATE qd_strategies_trading SET status = 'stopped' WHERE id = ?", (strategy_id,))
+        cur.execute("UPDATE zhiyiquant_strategies_trading SET status = 'stopped' WHERE id = ?", (strategy_id,))
         db.commit()
         cur.close()
 

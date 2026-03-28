@@ -56,7 +56,7 @@ class MetaSQLiteConfig(type):
         if override and str(override).strip():
             return override
 
-        app_dir_name = (os.getenv('QD_APP_DIR_NAME') or 'ZhiYiQuant').strip() or 'ZhiYiQuant'
+        app_dir_name = (os.getenv('ZHIYIQUANT_APP_DIR_NAME') or 'zhiyiquant').strip() or 'zhiyiquant'
 
         if sys.platform == 'win32':
             base_dir = os.getenv('LOCALAPPDATA') or os.getenv('APPDATA') or os.path.expanduser('~')

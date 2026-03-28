@@ -1,4 +1,4 @@
-﻿"""
+"""
 Pending order worker.
 
 This worker polls `pending_orders` periodically and dispatches orders based on `execution_mode`:
@@ -137,7 +137,7 @@ class PendingOrderWorker:
     def _sync_positions_best_effort(self, target_strategy_id: Optional[int] = None) -> None:
         """
         Best-effort reconciliation:
-        - If exchange position is flat, delete local row from qd_strategy_positions.
+        - If exchange position is flat, delete local row from zhiyiquant_strategy_positions.
         - If exchange position size differs, update local size (optional best-effort).
 
         This prevents "ghost positions" when positions are closed externally on the exchange.
@@ -148,11 +148,11 @@ class PendingOrderWorker:
             cur = db.cursor()
             if target_strategy_id:
                 cur.execute(
-                    "SELECT id, strategy_id, symbol, side, size, entry_price FROM qd_strategy_positions WHERE strategy_id = %s ORDER BY updated_at DESC", 
+                    "SELECT id, strategy_id, symbol, side, size, entry_price FROM zhiyiquant_strategy_positions WHERE strategy_id = %s ORDER BY updated_at DESC", 
                     (int(target_strategy_id),)
                 )
             else:
-                cur.execute("SELECT id, strategy_id, symbol, side, size, entry_price FROM qd_strategy_positions ORDER BY updated_at DESC")
+                cur.execute("SELECT id, strategy_id, symbol, side, size, entry_price FROM zhiyiquant_strategy_positions ORDER BY updated_at DESC")
             rows = cur.fetchall() or []
             cur.close()
 
@@ -183,7 +183,7 @@ class PendingOrderWorker:
             with get_db_connection() as db:
                 cur = db.cursor()
                 # Fetch all strategies configured for LIVE execution
-                cur.execute("SELECT id FROM qd_strategies_trading WHERE status = 'running' AND execution_mode = 'live'")
+                cur.execute("SELECT id FROM zhiyiquant_strategies_trading WHERE status = 'running' AND execution_mode = 'live'")
                 active_rows = cur.fetchall() or []
                 cur.close()
             
@@ -522,24 +522,24 @@ class PendingOrderWorker:
                 with get_db_connection() as db:
                     cur = db.cursor()
                     for rid in to_delete_ids:
-                        cur.execute("DELETE FROM qd_strategy_positions WHERE id = %s", (int(rid),))
+                        cur.execute("DELETE FROM zhiyiquant_strategy_positions WHERE id = %s", (int(rid),))
                     for u in to_update:
                         cur.execute(
-                            "UPDATE qd_strategy_positions SET size = %s, entry_price = %s, updated_at = NOW() WHERE id = %s", 
+                            "UPDATE zhiyiquant_strategy_positions SET size = %s, entry_price = %s, updated_at = NOW() WHERE id = %s", 
                             (float(u["size"]), float(u["entry_price"]), int(u["id"]))
                         )
                     for ins in to_insert:
                         # Get user_id from strategy
                         ins_user_id = 1
                         try:
-                            cur.execute("SELECT user_id FROM qd_strategies_trading WHERE id = %s", (int(ins["strategy_id"]),))
+                            cur.execute("SELECT user_id FROM zhiyiquant_strategies_trading WHERE id = %s", (int(ins["strategy_id"]),))
                             strategy_row = cur.fetchone()
                             if strategy_row and strategy_row.get("user_id"):
                                 ins_user_id = int(strategy_row["user_id"])
                         except Exception:
                             pass
                         cur.execute(
-                            """INSERT INTO qd_strategy_positions (user_id, strategy_id, symbol, side, size, entry_price, updated_at)
+                            """INSERT INTO zhiyiquant_strategy_positions (user_id, strategy_id, symbol, side, size, entry_price, updated_at)
                                VALUES (%s, %s, %s, %s, %s, %s, NOW())""",
                             (ins_user_id, int(ins["strategy_id"]), str(ins["symbol"]), str(ins["side"]), float(ins["size"]), float(ins["entry_price"]))
                         )
@@ -656,8 +656,8 @@ class PendingOrderWorker:
         if not strategy_name:
             strategy_name = f"Strategy_{strategy_id}"
 
-        # If the queued record is legacy ("signal") but the strategy is configured as live,
-        # automatically upgrade it to live execution to keep the system moving.
+        # If the queued record still says "signal" but the strategy is configured as live,
+        # upgrade it to live execution automatically.
         try:
             if mode != "live" and strategy_id:
                 sc = load_strategy_configs(int(strategy_id))
@@ -715,7 +715,7 @@ class PendingOrderWorker:
             with get_db_connection() as db:
                 cur = db.cursor()
                 cur.execute(
-                    "SELECT notification_config FROM qd_strategies_trading WHERE id = ?",
+                    "SELECT notification_config FROM zhiyiquant_strategies_trading WHERE id = ?",
                     (int(strategy_id),),
                 )
                 row = cur.fetchone() or {}
@@ -737,7 +737,7 @@ class PendingOrderWorker:
         try:
             with get_db_connection() as db:
                 cur = db.cursor()
-                cur.execute("SELECT strategy_name FROM qd_strategies_trading WHERE id = ?", (int(strategy_id),))
+                cur.execute("SELECT strategy_name FROM zhiyiquant_strategies_trading WHERE id = ?", (int(strategy_id),))
                 row = cur.fetchone() or {}
                 cur.close()
             return str(row.get("strategy_name") or "").strip()
@@ -948,7 +948,7 @@ class PendingOrderWorker:
                 # OKX max length is 32.
                 return base[:32]
             # Other exchanges are more permissive.
-            return f"qd_{int(strategy_id)}_{int(order_id)}{('_' + ph) if ph else ''}"
+            return f"zhiyiquant_{int(strategy_id)}_{int(order_id)}{('_' + ph) if ph else ''}"
 
         client_oid = _make_client_oid("")
         sig = str(signal_type or "").strip().lower()
@@ -1028,7 +1028,7 @@ class PendingOrderWorker:
                         qry_sym = f"{qry_sym[:-4]}/USDT"
                     
                     cur.execute(
-                        "SELECT size FROM qd_strategy_positions WHERE strategy_id = %s AND symbol = %s AND side = %s",
+                        "SELECT size FROM zhiyiquant_strategy_positions WHERE strategy_id = %s AND symbol = %s AND side = %s",
                         (strategy_id, qry_sym, pos_side)
                     )
                     row = cur.fetchone()

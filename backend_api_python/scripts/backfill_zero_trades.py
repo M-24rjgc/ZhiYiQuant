@@ -1,18 +1,18 @@
 """
-回填历史 qd_strategy_trades 中 price/amount/value 为 0 的记录。
+回填历史 zhiyiquant_strategy_trades 中 price/amount/value 为 0 的记录。
 
 背景：
 - 某些交易所/订单类型下，执行器回报里 filled_price/filled_amount 可能为 0，
   但交易所实际已成交，导致交易纪律/交易记录显示为 0。
 - 我们现在在 OrderProcessor 中增加了“fetch_order/fetch_my_trades 回补”逻辑，避免新数据再出现该问题。
-- 对历史脏数据，可用 qd_pending_orders 中的 executed_at/filled_price/filled_amount/fee 做近似匹配回填。
+- 对历史脏数据，可用 zhiyiquant_pending_orders 中的 executed_at/filled_price/filled_amount/fee 做近似匹配回填。
 
 使用：
   python backend_api_python/scripts/backfill_zero_trades.py --strategy-id 43 --since 2025-12-24 --until 2025-12-25
   python backend_api_python/scripts/backfill_zero_trades.py --strategy-id 43 --since 2025-12-24 --until 2025-12-25 --apply
 
 注意：
-- 该脚本按 (strategy_id, symbol, type) + 时间窗口(默认 ±600s) 匹配 qd_pending_orders。
+- 该脚本按 (strategy_id, symbol, type) + 时间窗口(默认 ±600s) 匹配 zhiyiquant_pending_orders。
 - 若同一条 trade 匹配到多个候选订单，将选择 executed_at 最接近的那条；若仍不唯一会跳过。
 """
 
@@ -45,7 +45,7 @@ def _fetch_bad_trades(strategy_id: int, since_ts: int, until_ts: int, limit: int
         cursor.execute(
             """
             SELECT id, strategy_id, symbol, type, price, amount, value, commission, profit, created_at
-            FROM qd_strategy_trades
+            FROM zhiyiquant_strategy_trades
             WHERE strategy_id = %s
               AND created_at BETWEEN %s AND %s
               AND (
@@ -77,7 +77,7 @@ def _find_best_order_match(
         cursor.execute(
             """
             SELECT id, symbol, signal_type, status, order_id, filled_amount, filled_price, fee, executed_at, created_at
-            FROM qd_pending_orders
+            FROM zhiyiquant_pending_orders
             WHERE strategy_id = %s
               AND symbol = %s
               AND signal_type = %s
@@ -115,7 +115,7 @@ def _update_trade(
         cursor = db.cursor()
         cursor.execute(
             """
-            UPDATE qd_strategy_trades
+            UPDATE zhiyiquant_strategy_trades
             SET price=%s, amount=%s, value=%s, commission=%s
             WHERE id=%s
             """,

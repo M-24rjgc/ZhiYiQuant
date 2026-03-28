@@ -1,6 +1,6 @@
 """
 AI chat API routes (optional).
-Currently kept as a minimal compatibility layer for legacy frontend calls.
+Provides a lightweight local placeholder until a dedicated desktop chat flow is added.
 """
 
 from flask import Blueprint, request, jsonify
@@ -14,10 +14,7 @@ ai_chat_bp = Blueprint('ai_chat', __name__)
 
 @ai_chat_bp.route('/chat/message', methods=['POST'])
 def chat_message():
-    """
-    Minimal placeholder for legacy chat.
-    Return a friendly message instead of 404, so the UI can evolve gradually.
-    """
+    """Minimal local chat placeholder."""
     data = request.get_json() or {}
     msg = (data.get('message') or '').strip()
     if not msg:
@@ -34,13 +31,13 @@ def chat_message():
 
 @ai_chat_bp.route('/chat/history', methods=['GET'])
 def get_chat_history():
-    """Return empty history (compatibility stub)."""
+    """Return empty history for the local placeholder flow."""
     return jsonify({'code': 1, 'msg': 'success', 'data': []})
 
 
 @ai_chat_bp.route('/chat/history/save', methods=['POST'])
 def save_chat_history():
-    """No-op save (compatibility stub)."""
+    """No-op save for the local placeholder flow."""
     return jsonify({'code': 1, 'msg': 'success', 'data': None})
 
 

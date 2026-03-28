@@ -33,9 +33,9 @@ class DataSourceFactory:
     @classmethod
     def get_data_source(cls, name: str) -> BaseDataSource:
         """
-        Backward compatible alias used by older code paths.
+        Alias used by existing internal callers.
 
-        Some modules historically called `get_data_source("binance")` to fetch a crypto data source.
+        Some modules call `get_data_source("binance")` to fetch a crypto data source.
         In the localized Python backend we primarily use `get_source("Crypto")`.
         """
         key = (name or "").strip().lower()
