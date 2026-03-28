@@ -17,22 +17,19 @@
         </div>
       </template>
 
-      <template #headerContentRender>
-        <div class="header-actions">
-          <a-tooltip title="刷新当前页面">
-            <a-icon type="reload" @click="handleRefresh" />
-          </a-tooltip>
-        </div>
-      </template>
-
       <setting-drawer ref="settingDrawer" :settings="settings" @change="handleSettingChange">
-        <div style="margin: 12px 0;">
+        <div class="setting-drawer-title">
           桌面偏好
         </div>
       </setting-drawer>
 
       <template #rightContentRender>
-        <right-content :top-menu="settings.layout === 'topmenu'" :is-mobile="isMobile" :theme="settings.theme" />
+        <right-content
+          :top-menu="settings.layout === 'topmenu'"
+          :is-mobile="isMobile"
+          :theme="settings.theme"
+          @refresh="handleRefresh"
+        />
       </template>
 
       <template #footerRender>
@@ -92,7 +89,7 @@ export default {
     return {
       collapsed: false,
       title: defaultSettings.title,
-      appVersion: typeof APP_VERSION !== 'undefined' ? APP_VERSION : '1.0.3',
+      appVersion: typeof APP_VERSION !== 'undefined' ? APP_VERSION : '1.0.4',
       settings: {
         layout: defaultSettings.layout,
         contentWidth: defaultSettings.layout === 'sidemenu' ? CONTENT_WIDTH_TYPE.Fluid : defaultSettings.contentWidth,
@@ -151,6 +148,12 @@ export default {
       }
     }, { immediate: true })
   },
+  mounted () {
+    this.$root.$on('show-setting-drawer', this.openSettingDrawer)
+  },
+  beforeDestroy () {
+    this.$root.$off('show-setting-drawer', this.openSettingDrawer)
+  },
   methods: {
     i18nRender,
     handleMediaQuery (val) {
@@ -167,6 +170,11 @@ export default {
     },
     handleRefresh () {
       this.refreshKey += 1
+    },
+    openSettingDrawer () {
+      if (this.$refs.settingDrawer && typeof this.$refs.settingDrawer.showDrawer === 'function') {
+        this.$refs.settingDrawer.showDrawer()
+      }
     },
     handleSettingChange ({ type, value }) {
       switch (type) {
@@ -217,25 +225,27 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .brand-mark {
   width: 28px;
   height: 28px;
+  flex-shrink: 0;
 }
 
 .menu-brand h1 {
   margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-
-  .anticon {
-    font-size: 18px;
-    cursor: pointer;
-  }
+.setting-drawer-title {
+  margin: 12px 0;
 }
 
 .custom-menu-footer {
@@ -272,6 +282,24 @@ export default {
 
 .version {
   color: #8aa0aa;
+}
+
+::v-deep .ant-pro-sider-menu-logo {
+  overflow: hidden;
+}
+
+::v-deep .ant-layout-sider-collapsed .menu-brand {
+  justify-content: center;
+  gap: 0;
+}
+
+::v-deep .ant-layout-sider-collapsed .menu-brand h1 {
+  display: none;
+}
+
+::v-deep .ant-layout-sider-collapsed .menu-brand .brand-mark {
+  width: 22px;
+  height: 22px;
 }
 
 @media (max-width: 991px) {

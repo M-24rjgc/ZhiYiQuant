@@ -114,7 +114,7 @@
           <div class="card-sub">
             {{ $t('portfolio.summary.syncInterval') }}: 30s
             <a-button type="link" size="small" @click="refreshPrices" :loading="isSyncing" style="padding: 0; margin-left: 8px;">
-              <a-icon type="reload" v-if="!isSyncing" />
+              <a-icon type="redo" v-if="!isSyncing" />
             </a-button>
           </div>
         </div>
@@ -2273,6 +2273,37 @@ export default {
     color: #262626;
 
     .anticon { color: @blue; }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    > .ant-btn,
+    > .ant-radio-group,
+    > .ant-select {
+      margin-right: 0 !important;
+      margin-left: 0 !important;
+    }
+  }
+}
+
+.section-header .header-actions > .ant-btn,
+.empty-state .ant-btn,
+.monitor-actions .ant-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  .anticon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    margin-right: 0;
   }
 }
 
