@@ -10,6 +10,7 @@ const getters = {
   roles: state => state.user.roles,
   userInfo: state => state.user.info,
   addRouters: state => state.permission.addRouters,
+  dynamicRoutesReady: state => state.permission.isDynamicRoutesReady,
   multiTab: state => state.app.multiTab
 }
 

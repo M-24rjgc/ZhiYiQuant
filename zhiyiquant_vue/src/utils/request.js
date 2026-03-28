@@ -25,6 +25,23 @@ function isTauriRuntime () {
   )
 }
 
+function normalizeBaseURL (baseURL) {
+  if (!baseURL) {
+    return ''
+  }
+
+  const trimmed = String(baseURL).trim()
+  if (!trimmed) {
+    return ''
+  }
+
+  if (trimmed === '/api' || trimmed === '/api/') {
+    return '/'
+  }
+
+  return trimmed
+}
+
 function resolveBaseURL () {
   if (typeof window !== 'undefined') {
     const injected = window.__ZHIYIQUANT_API_BASE_URL__
@@ -42,7 +59,7 @@ function resolveBaseURL () {
     }
   }
 
-  return process.env.VUE_APP_API_BASE_URL || '/'
+  return normalizeBaseURL(process.env.VUE_APP_API_BASE_URL || '/')
 }
 
 function buildDesktopBaseURL (port) {

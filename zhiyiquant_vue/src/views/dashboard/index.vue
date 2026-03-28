@@ -495,9 +495,17 @@
 </template>
 
 <script>
-import * as echarts from 'echarts'
 import { getDashboardSummary, getPendingOrders } from '@/api/dashboard'
 import { mapState } from 'vuex'
+
+let echartsLibPromise = null
+
+function loadEChartsLib () {
+  if (!echartsLibPromise) {
+    echartsLibPromise = import('echarts').then(mod => mod.default || mod)
+  }
+  return echartsLibPromise
+}
 
 export default {
   name: 'Dashboard',
@@ -524,6 +532,7 @@ export default {
       pieChart: null,
       drawdownChart: null,
       hourlyChart: null,
+      echartsLib: null,
       pendingOrders: [],
       ordersLoading: false,
       ordersPagination: {
@@ -733,9 +742,7 @@ export default {
   beforeDestroy () {
     this.stopOrderPolling()
     window.removeEventListener('resize', this.handleResize)
-    if (this.pieChart) this.pieChart.dispose()
-    if (this.drawdownChart) this.drawdownChart.dispose()
-    if (this.hourlyChart) this.hourlyChart.dispose()
+    this.disposeCharts()
   },
   methods: {
     async fetchData () {
@@ -743,8 +750,8 @@ export default {
         const res = await getDashboardSummary()
         if (res.code === 1) {
           this.summary = { ...this.summary, ...res.data }
-          this.$nextTick(() => {
-            this.initCharts()
+          this.$nextTick(async () => {
+            await this.initCharts()
           })
         }
       } catch (e) {
@@ -1031,12 +1038,34 @@ export default {
         return '-'
       }
     },
-    initCharts () {
-      this.initPieChart()
-      this.initDrawdownChart()
-      this.initHourlyChart()
+    async ensureECharts () {
+      if (!this.echartsLib) {
+        this.echartsLib = await loadEChartsLib()
+      }
+      return this.echartsLib
     },
-    initPieChart () {
+    disposeCharts () {
+      if (this.pieChart) {
+        this.pieChart.dispose()
+        this.pieChart = null
+      }
+      if (this.drawdownChart) {
+        this.drawdownChart.dispose()
+        this.drawdownChart = null
+      }
+      if (this.hourlyChart) {
+        this.hourlyChart.dispose()
+        this.hourlyChart = null
+      }
+    },
+    async initCharts () {
+      const echarts = await this.ensureECharts()
+      this.disposeCharts()
+      this.initPieChart(echarts)
+      this.initDrawdownChart(echarts)
+      this.initHourlyChart(echarts)
+    },
+    initPieChart (echarts) {
       const chartDom = this.$refs.pieChart
       if (!chartDom) return
       this.pieChart = echarts.init(chartDom)
@@ -1158,7 +1187,7 @@ export default {
       }
       this.pieChart.setOption(option)
     },
-    initDrawdownChart () {
+    initDrawdownChart (echarts) {
       const chartDom = this.$refs.drawdownChart
       if (!chartDom) return
       this.drawdownChart = echarts.init(chartDom)
@@ -1317,7 +1346,7 @@ export default {
       }
       this.drawdownChart.setOption(option)
     },
-    initHourlyChart () {
+    initHourlyChart (echarts) {
       const chartDom = this.$refs.hourlyChart
       if (!chartDom) return
       this.hourlyChart = echarts.init(chartDom)

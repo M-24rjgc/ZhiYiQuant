@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from flask import Blueprint, jsonify
+from app.config.settings import Config
 
 health_bp = Blueprint("health", __name__)
 
@@ -9,7 +10,7 @@ health_bp = Blueprint("health", __name__)
 def index():
     return jsonify({
         "name": "智弈量化桌面引擎",
-        "version": "1.0.0",
+        "version": Config.VERSION,
         "status": "running",
         "timestamp": datetime.now().isoformat(),
     })

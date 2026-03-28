@@ -18,7 +18,18 @@ function getStoredToken () {
   return token && token.token ? token.token : null
 }
 
-router.beforeEach((to, from, next) => {
+async function ensureDynamicRoutesReady () {
+  if (store.getters.dynamicRoutesReady) {
+    return false
+  }
+
+  const routes = await store.dispatch('GenerateRoutes')
+  resetRouter()
+  routes.forEach(route => router.addRoute(route))
+  return true
+}
+
+router.beforeEach(async (to, from, next) => {
   NProgress.start()
 
   if (to.meta && typeof to.meta.title !== 'undefined') {
@@ -43,20 +54,20 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  store.dispatch('GetInfo')
-    .then(() => {
-      store.dispatch('GenerateRoutes').then(() => {
-        resetRouter()
-        store.getters.addRouters.forEach(r => router.addRoute(r))
-        next({ ...to, replace: true })
-      }).catch(() => next())
+  try {
+    await store.dispatch('GetInfo')
+    const routesInjected = await ensureDynamicRoutesReady()
+    if (routesInjected) {
+      next({ ...to, replace: true })
+      return
+    }
+    next()
+  } catch (e) {
+    store.dispatch('Logout').finally(() => {
+      next({ path: loginRoutePath, query: { redirect: to.fullPath } })
+      NProgress.done()
     })
-    .catch(() => {
-      store.dispatch('Logout').finally(() => {
-        next({ path: loginRoutePath, query: { redirect: to.fullPath } })
-        NProgress.done()
-      })
-    })
+  }
 })
 
 router.afterEach(() => {

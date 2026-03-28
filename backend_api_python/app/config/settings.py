@@ -23,7 +23,7 @@ class MetaConfig(type):
 
     @property
     def VERSION(cls):
-        return '1.0.1'
+        return '1.0.2'
 
     @property
     def SECRET_KEY(cls):

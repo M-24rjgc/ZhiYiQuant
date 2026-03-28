@@ -52,7 +52,7 @@
           © 2026 智弈量化
         </div>
         <div class="footer-section version">
-          V1.0.0
+          V{{ appVersion }}
         </div>
       </div>
     </div>
@@ -92,6 +92,7 @@ export default {
     return {
       collapsed: false,
       title: defaultSettings.title,
+      appVersion: typeof APP_VERSION !== 'undefined' ? APP_VERSION : '1.0.2',
       settings: {
         layout: defaultSettings.layout,
         contentWidth: defaultSettings.layout === 'sidemenu' ? CONTENT_WIDTH_TYPE.Fluid : defaultSettings.contentWidth,
