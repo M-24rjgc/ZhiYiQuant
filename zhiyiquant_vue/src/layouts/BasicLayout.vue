@@ -92,7 +92,7 @@ export default {
     return {
       collapsed: false,
       title: defaultSettings.title,
-      appVersion: typeof APP_VERSION !== 'undefined' ? APP_VERSION : '1.0.2',
+      appVersion: typeof APP_VERSION !== 'undefined' ? APP_VERSION : '1.0.3',
       settings: {
         layout: defaultSettings.layout,
         contentWidth: defaultSettings.layout === 'sidemenu' ? CONTENT_WIDTH_TYPE.Fluid : defaultSettings.contentWidth,

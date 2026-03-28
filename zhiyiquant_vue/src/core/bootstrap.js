@@ -29,5 +29,7 @@ export default function initializer () {
   const token = storage.get(ACCESS_TOKEN)
   store.commit('SET_TOKEN', typeof token === 'string' ? token : (token && token.token) ? token.token : null)
 
-  store.dispatch('setLang', storage.get(APP_LANGUAGE, 'en-US'))
+  const storedLang = storage.get(APP_LANGUAGE)
+  const normalizedLang = (storedLang && storedLang !== 'en-US') ? storedLang : 'zh-CN'
+  store.dispatch('setLang', normalizedLang)
 }

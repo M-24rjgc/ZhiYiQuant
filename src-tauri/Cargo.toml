@@ -1,6 +1,6 @@
 [package]
 name = "zhiyiquant-desktop"
-version = "1.0.2"
+version = "1.0.3"
 description = "ZhiyiQuant desktop application built with Tauri 2"
 authors = ["ZhiyiQuant Team"]
 license = "Apache-2.0"

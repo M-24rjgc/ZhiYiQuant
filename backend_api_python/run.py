@@ -80,7 +80,7 @@ app = create_app()
 def main():
     """启动应用"""
     # Keep startup messages ASCII-only and short.
-    print("ZhiyiQuant Desktop Engine v1.0.2")
+    print("ZhiyiQuant Desktop Engine v1.0.3")
     
     # Check demo mode status for debugging
     demo_status = os.getenv('IS_DEMO_MODE', 'false').lower()
