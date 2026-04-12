@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Optional
 
 from app.utils.db import get_db_connection
 from app.utils.logger import get_logger
@@ -74,7 +74,7 @@ class AnalysisMemory:
             db.commit()
             cur.close()
 
-    def store(self, analysis_result: dict[str, Any], user_id: int | None = None) -> int | None:
+    def store(self, analysis_result: dict[str, Any], user_id: Optional[int] = None) -> Optional[int]:
         try:
             with get_db_connection() as db:
                 cur = db.cursor()
@@ -134,7 +134,7 @@ class AnalysisMemory:
             logger.warning(f"Failed to load recent history: {exc}")
             return []
 
-    def get_all_history(self, user_id: int | None = None, page: int = 1, page_size: int = 20) -> dict[str, Any]:
+    def get_all_history(self, user_id: Optional[int] = None, page: int = 1, page_size: int = 20) -> dict[str, Any]:
         page = max(page, 1)
         page_size = max(1, min(page_size, 100))
         offset = (page - 1) * page_size
@@ -167,7 +167,7 @@ class AnalysisMemory:
             logger.warning(f"Failed to load analysis history: {exc}")
             return {"items": [], "total": 0, "page": page, "page_size": page_size}
 
-    def delete_history(self, memory_id: int, user_id: int | None = None) -> bool:
+    def delete_history(self, memory_id: int, user_id: Optional[int] = None) -> bool:
         try:
             with get_db_connection() as db:
                 cur = db.cursor()
@@ -245,7 +245,7 @@ class AnalysisMemory:
         scored.sort(key=lambda item: item.get("similarity_score", 0), reverse=True)
         return scored[:limit]
 
-    def get_performance_stats(self, market: str | None = None, symbol: str | None = None, days: int = 30) -> dict[str, Any]:
+    def get_performance_stats(self, market: Optional[str] = None, symbol: Optional[str] = None, days: int = 30) -> dict[str, Any]:
         try:
             with get_db_connection() as db:
                 cur = db.cursor()
@@ -314,7 +314,7 @@ class AnalysisMemory:
         return normalized
 
 
-_memory_instance: AnalysisMemory | None = None
+_memory_instance: Optional[AnalysisMemory] = None
 
 
 def get_analysis_memory() -> AnalysisMemory:

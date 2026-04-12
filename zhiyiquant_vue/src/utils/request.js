@@ -134,8 +134,19 @@ async function ensureDesktopBaseURL () {
       }
 
       baseURL = baseURL || resolveBaseURL()
-      const ready = await waitForDesktopBackendHealth(baseURL)
-      emitDesktopRuntimeReady(ready, baseURL)
+       let ready = await waitForDesktopBackendHealth(baseURL)
+     
+       // If backend health check failed and no custom baseURL was set, try default development port
+       if (!ready && !baseURL) {
+         const defaultPort = 5051
+         const defaultBaseURL = `http://127.0.0.1:${defaultPort}/`
+         ready = await waitForDesktopBackendHealth(defaultBaseURL)
+         if (ready) {
+           baseURL = setDesktopApiPort(defaultPort)
+         }
+       }
+     
+       emitDesktopRuntimeReady(ready, baseURL)
       return baseURL
     })().finally(() => {
       desktopApiReadyPromise = null

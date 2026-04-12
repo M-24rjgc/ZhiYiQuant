@@ -77,6 +77,33 @@ def _set_cached(key: str, data: Any, ttl: int = None):
     }
 
 
+def _get_last_cached(key: str) -> Optional[Any]:
+    """Get last cached data regardless of TTL (stale fallback)."""
+    entry = _cache.get(key) or {}
+    return entry.get("data")
+
+
+def _has_positive_price(items: Any) -> bool:
+    if not isinstance(items, list):
+        return False
+    for item in items:
+        if _safe_float((item or {}).get("price"), 0.0) > 0:
+            return True
+    return False
+
+
+def _heatmap_has_signal(data: Any) -> bool:
+    if not isinstance(data, dict):
+        return False
+    for key in ("crypto", "sectors", "forex", "commodities", "indices"):
+        for item in (data.get(key) or []):
+            v = _safe_float((item or {}).get("value"), 0.0)
+            p = _safe_float((item or {}).get("price"), 0.0)
+            if abs(v) > 1e-8 or p > 0:
+                return True
+    return False
+
+
 def _safe_float(v: Any, default: float = 0.0) -> float:
     try:
         return float(v)
@@ -239,15 +266,9 @@ def _fetch_crypto_prices() -> List[Dict[str, Any]]:
     except Exception as e:
         logger.error(f"Failed to fetch crypto prices from CoinGecko: {e}")
         
-    # Last resort: return placeholder data for display
-    logger.warning("All crypto data sources failed, returning placeholder data")
-    return [
-        {"symbol": "BTC", "name": "Bitcoin", "price": 0, "change_24h": 0, "change_7d": 0, "market_cap": 0, "volume_24h": 0, "image": "", "category": "crypto"},
-        {"symbol": "ETH", "name": "Ethereum", "price": 0, "change_24h": 0, "change_7d": 0, "market_cap": 0, "volume_24h": 0, "image": "", "category": "crypto"},
-        {"symbol": "BNB", "name": "BNB", "price": 0, "change_24h": 0, "change_7d": 0, "market_cap": 0, "volume_24h": 0, "image": "", "category": "crypto"},
-        {"symbol": "SOL", "name": "Solana", "price": 0, "change_24h": 0, "change_7d": 0, "market_cap": 0, "volume_24h": 0, "image": "", "category": "crypto"},
-        {"symbol": "XRP", "name": "XRP", "price": 0, "change_24h": 0, "change_7d": 0, "market_cap": 0, "volume_24h": 0, "image": "", "category": "crypto"},
-    ]
+    # Last resort: return empty and let caller decide stale fallback.
+    logger.warning("All crypto data sources failed, returning empty list")
+    return []
 
 
 def _fetch_stock_indices() -> List[Dict[str, Any]]:
@@ -1483,19 +1504,38 @@ def market_overview():
                 except Exception as e:
                     logger.error(f"Failed to fetch {key}: {e}", exc_info=True)
                     result[key] = []
+
+        # If freshly fetched data is unusable (e.g., rate-limit returns zero snapshots),
+        # fallback to last known good per-block cache instead of showing all-zero values.
+        for key in ("indices", "forex", "crypto", "commodities"):
+            if _has_positive_price(result.get(key)):
+                continue
+            stale = _get_last_cached(f"{key}_data")
+            if _has_positive_price(stale):
+                logger.warning(f"Using stale cached {key} data because fresh snapshot is empty/zero")
+                result[key] = stale
         
         # Log summary
         logger.info(f"Market overview complete: indices={len(result['indices'])}, "
                    f"forex={len(result['forex'])}, crypto={len(result['crypto'])}, "
                    f"commodities={len(result['commodities'])}")
         
-        # Also cache indices for heatmap
-        _set_cached("stock_indices", result["indices"], 30)
-        _set_cached("forex_pairs", result["forex"], 30)
-        _set_cached("crypto_prices", result["crypto"], 30)
-        
-        # Cache the full result
-        _set_cached("market_overview", result, 30)
+        # Also cache indices for heatmap (only when block has usable prices)
+        if _has_positive_price(result["indices"]):
+            _set_cached("stock_indices", result["indices"], 30)
+        if _has_positive_price(result["forex"]):
+            _set_cached("forex_pairs", result["forex"], 30)
+        if _has_positive_price(result["crypto"]):
+            _set_cached("crypto_prices", result["crypto"], 30)
+
+        # Cache full result only when at least one block has usable price data.
+        if any(_has_positive_price(result.get(k)) for k in ("indices", "forex", "crypto", "commodities")):
+            _set_cached("market_overview", result, 30)
+        else:
+            stale_overview = _get_last_cached("market_overview")
+            if stale_overview:
+                logger.warning("Using stale market_overview because fresh snapshot has no usable prices")
+                result = stale_overview
         
         return jsonify({"code": 1, "msg": "success", "data": result})
         
@@ -1516,7 +1556,13 @@ def market_heatmap():
             return jsonify({"code": 1, "msg": "success", "data": cached})
         
         data = _generate_heatmap_data()
-        _set_cached("market_heatmap", data, 30)
+        if _heatmap_has_signal(data):
+            _set_cached("market_heatmap", data, 30)
+        else:
+            stale = _get_last_cached("market_heatmap")
+            if stale and _heatmap_has_signal(stale):
+                logger.warning("Using stale market_heatmap because fresh snapshot is all-zero/empty")
+                data = stale
         
         return jsonify({"code": 1, "msg": "success", "data": data})
         

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import os
-from typing import Any
+from typing import Any, Optional
 
 from app.utils.db import get_db_connection
 from app.utils.logger import get_logger
@@ -77,7 +77,7 @@ class UserService:
             db.commit()
             cur.close()
 
-    def get_owner(self) -> dict[str, Any] | None:
+    def get_owner(self) -> Optional[dict[str, Any]]:
         with get_db_connection() as db:
             cur = db.cursor()
             cur.execute(
@@ -93,7 +93,7 @@ class UserService:
             cur.close()
             return row
 
-    def authenticate(self, username: str, password: str) -> dict[str, Any] | None:
+    def authenticate(self, username: str, password: str) -> Optional[dict[str, Any]]:
         user = self.get_owner()
         if not user:
             return None
@@ -114,7 +114,7 @@ class UserService:
         user.pop("password_hash", None)
         return user
 
-    def get_profile(self, user_id: int) -> dict[str, Any] | None:
+    def get_profile(self, user_id: int) -> Optional[dict[str, Any]]:
         with get_db_connection() as db:
             cur = db.cursor()
             cur.execute(
@@ -201,7 +201,7 @@ class UserService:
             return changed
 
 
-_user_service: UserService | None = None
+_user_service: Optional[UserService] = None
 
 
 def get_user_service() -> UserService:

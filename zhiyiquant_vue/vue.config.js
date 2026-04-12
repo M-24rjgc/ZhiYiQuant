@@ -6,6 +6,10 @@ const GitRevision = new GitRevisionPlugin()
 const buildDate = JSON.stringify(new Date().toLocaleString())
 const createThemeColorReplacerPlugin = require('./config/plugin.config')
 
+const devApiPort = Number(process.env.VUE_APP_API_PORT || 5051)
+const devApiHost = process.env.VUE_APP_API_HOST || '127.0.0.1'
+const devApiTarget = process.env.VUE_APP_API_PROXY_TARGET || `http://${devApiHost}:${devApiPort}`
+
 function resolve (dir) {
   return path.join(__dirname, dir)
 }
@@ -128,7 +132,7 @@ const vueConfig = {
     port: 8000,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: devApiTarget,
         ws: true,
         changeOrigin: true
       }

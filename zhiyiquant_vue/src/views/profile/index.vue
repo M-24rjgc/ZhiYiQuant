@@ -292,10 +292,19 @@ export default {
       try {
         const res = await testNotification()
         if (res.code === 1) {
-          this.$message.success(res.msg || '测试通知已发送')
+          this.$message.success('测试通知已发送，请检查目标渠道收件箱')
         } else {
           this.$message.error(res.msg || '测试通知发送失败')
         }
+      } catch (error) {
+        const data = error && error.response && error.response.data ? error.response.data : {}
+        const failed = (data && data.data && data.data.failed) ? data.data.failed : {}
+        const details = Object.keys(failed).map(ch => {
+          const err = (failed[ch] && failed[ch].error) ? failed[ch].error : 'unknown_error'
+          return `${ch}: ${err}`
+        })
+        const msg = details.length ? `测试通知失败 - ${details.join(' | ')}` : (data.msg || '测试通知发送失败')
+        this.$message.error(msg)
       } finally {
         this.testingNotification = false
       }

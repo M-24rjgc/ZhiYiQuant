@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import datetime as dt
 from functools import wraps
+from typing import Optional
 
 import jwt
 from flask import g, jsonify, request
@@ -15,7 +16,7 @@ from app.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-def generate_token(user_id: int, username: str) -> str | None:
+def generate_token(user_id: int, username: str) -> Optional[str]:
     try:
         payload = {
             "exp": dt.datetime.utcnow() + dt.timedelta(days=7),
@@ -29,7 +30,7 @@ def generate_token(user_id: int, username: str) -> str | None:
         return None
 
 
-def verify_token(token: str) -> dict | None:
+def verify_token(token: str) -> Optional[dict]:
     try:
         return jwt.decode(token, Config.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
@@ -60,5 +61,5 @@ def login_required(func):
     return decorated
 
 
-def get_current_user_id() -> int | None:
+def get_current_user_id() -> Optional[int]:
     return getattr(g, "user_id", None)

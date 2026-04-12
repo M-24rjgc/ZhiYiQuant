@@ -500,6 +500,251 @@ import { mapState } from 'vuex'
 
 let echartsLibPromise = null
 
+function getDemoBaseTime () {
+  return Date.now() - (6 * 24 * 60 * 60 * 1000)
+}
+
+function buildDemoDashboardSummary () {
+  const baseTime = getDemoBaseTime()
+  const makeTime = (offsetDays, hour, minute) => new Date(baseTime + (offsetDays * 24 * 60 * 60 * 1000) + (hour * 60 + minute) * 60 * 1000).toISOString()
+
+  return {
+    ai_strategy_count: 3,
+    indicator_strategy_count: 5,
+    total_equity: 1286400.48,
+    total_pnl: 146320.32,
+    total_realized_pnl: 98240.18,
+    total_unrealized_pnl: 48080.14,
+    performance: {
+      win_rate: 68.4,
+      winning_trades: 172,
+      losing_trades: 80,
+      profit_factor: 2.36,
+      avg_win: 1842.61,
+      max_drawdown_pct: 7.8,
+      max_drawdown: 41235.66,
+      total_trades: 252
+    },
+    strategy_stats: [
+      { strategy_name: '量化动量突破', total_pnl: 58240.56, total_trades: 88 },
+      { strategy_name: '趋势追踪组合', total_pnl: 41320.74, total_trades: 76 },
+      { strategy_name: '均值回归套利', total_pnl: 27650.12, total_trades: 54 },
+      { strategy_name: 'AI 风控卫星', total_pnl: 9110.52, total_trades: 34 }
+    ],
+    daily_pnl_chart: [
+      { date: '2026-04-06', profit: 4620.8 },
+      { date: '2026-04-07', profit: 2380.2 },
+      { date: '2026-04-08', profit: -1680.3 },
+      { date: '2026-04-09', profit: 5520.9 },
+      { date: '2026-04-10', profit: 3140.6 },
+      { date: '2026-04-11', profit: 7190.4 },
+      { date: '2026-04-12', profit: 4060.1 }
+    ],
+    strategy_pnl_chart: [
+      { name: '量化动量突破', value: 58240.56 },
+      { name: '趋势追踪组合', value: 41320.74 },
+      { name: '均值回归套利', value: 27650.12 },
+      { name: 'AI 风控卫星', value: 9110.52 }
+    ],
+    monthly_returns: [
+      { month: '2025-11', return: 5.8 },
+      { month: '2025-12', return: 7.2 },
+      { month: '2026-01', return: 4.6 },
+      { month: '2026-02', return: -1.8 },
+      { month: '2026-03', return: 6.4 },
+      { month: '2026-04', return: 3.9 }
+    ],
+    hourly_distribution: [
+      { hour: 0, count: 2, profit: 140.3 },
+      { hour: 1, count: 1, profit: 68.1 },
+      { hour: 2, count: 1, profit: -32.4 },
+      { hour: 3, count: 0, profit: 0 },
+      { hour: 4, count: 0, profit: 0 },
+      { hour: 5, count: 1, profit: 124.5 },
+      { hour: 6, count: 3, profit: 280.4 },
+      { hour: 7, count: 4, profit: 344.2 },
+      { hour: 8, count: 7, profit: 1120.8 },
+      { hour: 9, count: 9, profit: 1864.1 },
+      { hour: 10, count: 11, profit: 2380.6 },
+      { hour: 11, count: 10, profit: 1714.9 },
+      { hour: 12, count: 6, profit: 920.4 },
+      { hour: 13, count: 5, profit: 640.7 },
+      { hour: 14, count: 8, profit: 1480.3 },
+      { hour: 15, count: 9, profit: 1770.5 },
+      { hour: 16, count: 7, profit: 1288.2 },
+      { hour: 17, count: 4, profit: 710.6 },
+      { hour: 18, count: 3, profit: 515.2 },
+      { hour: 19, count: 2, profit: 322.4 },
+      { hour: 20, count: 2, profit: 210.7 },
+      { hour: 21, count: 1, profit: 96.8 },
+      { hour: 22, count: 1, profit: 84.2 },
+      { hour: 23, count: 1, profit: 58.3 }
+    ],
+    calendar_months: [
+      {
+        year: 2026,
+        month: 4,
+        first_weekday: 2,
+        days: {
+          '01': 1200,
+          '02': -340,
+          '03': 860,
+          '04': 0,
+          '05': 430,
+          '06': 980,
+          '07': -210,
+          '08': 560,
+          '09': 740,
+          '10': 1250,
+          '11': 1580,
+          '12': 920,
+          '13': -120,
+          '14': 450,
+          '15': 650,
+          '16': 780,
+          '17': 1010,
+          '18': -260,
+          '19': 330,
+          '20': 980,
+          '21': 1120,
+          '22': 760,
+          '23': 540,
+          '24': 890,
+          '25': 1350,
+          '26': 420,
+          '27': -180,
+          '28': 690,
+          '29': 880,
+          '30': 1040
+        }
+      },
+      {
+        year: 2026,
+        month: 3,
+        first_weekday: 6,
+        days: {
+          '01': 520,
+          '02': 480,
+          '03': -140,
+          '04': 760,
+          '05': 910,
+          '06': 320,
+          '07': 580,
+          '08': 640,
+          '09': 800,
+          '10': 1040,
+          '11': 380,
+          '12': 720,
+          '13': 860,
+          '14': 940,
+          '15': 510,
+          '16': 430,
+          '17': 260,
+          '18': 680,
+          '19': 780,
+          '20': 920,
+          '21': -220,
+          '22': 560,
+          '23': 610,
+          '24': 830,
+          '25': 980,
+          '26': 1120,
+          '27': 450,
+          '28': 640,
+          '29': 710,
+          '30': 880,
+          '31': 1200
+        }
+      }
+    ],
+    recent_trades: [
+      { id: 10018, created_at: makeTime(0, 9, 18), symbol: 'BTCUSDT', type: 'open_long', price: 68320.4, profit: 0.0 },
+      { id: 10017, created_at: makeTime(0, 9, 42), symbol: 'ETHUSDT', type: 'close_long', price: 3458.2, profit: 1240.65 },
+      { id: 10016, created_at: makeTime(0, 10, 8), symbol: 'AAPL', type: 'open_short', price: 188.64, profit: 0.0 },
+      { id: 10015, created_at: makeTime(0, 10, 41), symbol: 'TSLA', type: 'close_short', price: 176.98, profit: -340.28 },
+      { id: 10014, created_at: makeTime(1, 14, 26), symbol: 'EURUSD', type: 'add_long', price: 1.0842, profit: 0.0 },
+      { id: 10013, created_at: makeTime(1, 15, 9), symbol: 'NVDA', type: 'close_long', price: 912.75, profit: 2875.9 },
+      { id: 10012, created_at: makeTime(2, 11, 34), symbol: 'XAUUSD', type: 'open_long', price: 2351.6, profit: 0.0 },
+      { id: 10011, created_at: makeTime(2, 16, 55), symbol: 'SOLUSDT', type: 'close_short', price: 182.4, profit: 618.32 }
+    ],
+    current_positions: [
+      { id: 1, symbol: 'BTCUSDT', side: 'Long', size: 1.25, entry_price: 66780.4, unrealized_pnl: 8420.5 },
+      { id: 2, symbol: 'ETHUSDT', side: 'Long', size: 18, entry_price: 3320.8, unrealized_pnl: 3640.2 },
+      { id: 3, symbol: 'AAPL', side: 'Short', size: 420, entry_price: 190.14, unrealized_pnl: -620.8 },
+      { id: 4, symbol: 'XAUUSD', side: 'Long', size: 3.4, entry_price: 2318.2, unrealized_pnl: 1980.3 }
+    ]
+  }
+}
+
+function buildDemoPendingOrders () {
+  return [
+    {
+      id: 20031,
+      strategy_id: 11,
+      strategy_name: '量化动量突破',
+      exchange_id: 'binance',
+      notify_channels: ['browser', 'telegram'],
+      symbol: 'BTCUSDT',
+      signal_type: 'open_long',
+      amount: 0.65,
+      filled_price: 68420.1,
+      status: 'completed',
+      created_at: '2026-04-12T08:20:00Z',
+      executed_at: '2026-04-12T08:20:12Z'
+    },
+    {
+      id: 20030,
+      strategy_id: 12,
+      strategy_name: '趋势追踪组合',
+      exchange_id: 'okx',
+      notify_channels: ['browser'],
+      symbol: 'ETHUSDT',
+      signal_type: 'close_long',
+      amount: 9.2,
+      filled_price: 3462.8,
+      status: 'processing',
+      created_at: '2026-04-12T08:26:40Z',
+      executed_at: '2026-04-12T08:26:55Z'
+    },
+    {
+      id: 20029,
+      strategy_id: 14,
+      strategy_name: 'AI 风控卫星',
+      exchange_id: 'signal',
+      notify_channels: ['webhook', 'email'],
+      symbol: 'XAUUSD',
+      signal_type: 'open_short',
+      amount: 1.5,
+      filled_price: 2353.4,
+      status: 'pending',
+      created_at: '2026-04-12T08:31:20Z',
+      executed_at: null
+    },
+    {
+      id: 20028,
+      strategy_id: 11,
+      strategy_name: '量化动量突破',
+      exchange_id: 'binance',
+      notify_channels: ['browser'],
+      symbol: 'SOLUSDT',
+      signal_type: 'add_long',
+      amount: 24,
+      filled_price: 182.25,
+      status: 'failed',
+      created_at: '2026-04-12T07:58:10Z',
+      executed_at: null
+    }
+  ]
+}
+
+function isDemoDashboardDataEmpty (summary) {
+  if (!summary) return true
+  const stats = Array.isArray(summary.strategy_stats) ? summary.strategy_stats : []
+  const trades = Array.isArray(summary.recent_trades) ? summary.recent_trades : []
+  const positions = Array.isArray(summary.current_positions) ? summary.current_positions : []
+  return stats.length === 0 && trades.length === 0 && positions.length === 0
+}
+
 function loadEChartsLib () {
   if (!echartsLibPromise) {
     echartsLibPromise = import('echarts').then(mod => mod.default || mod)
@@ -511,6 +756,7 @@ export default {
   name: 'Dashboard',
   data () {
     return {
+      isDemoMode: typeof process !== 'undefined' && process.env && String(process.env.VUE_APP_DEMO_MODE || '').toLowerCase() === 'true',
       summary: {
         ai_strategy_count: 0,
         indicator_strategy_count: 0,
@@ -749,13 +995,25 @@ export default {
       try {
         const res = await getDashboardSummary()
         if (res.code === 1) {
-          this.summary = { ...this.summary, ...res.data }
-          this.$nextTick(async () => {
-            await this.initCharts()
-          })
+          const data = res.data || {}
+          if (this.isDemoMode || isDemoDashboardDataEmpty(data)) {
+            this.summary = buildDemoDashboardSummary()
+          } else {
+            this.summary = { ...this.summary, ...data }
+          }
+        } else if (this.isDemoMode) {
+          this.summary = buildDemoDashboardSummary()
         }
+
+        this.$nextTick(async () => {
+          await this.initCharts()
+        })
       } catch (e) {
         console.error('Failed to fetch dashboard data:', e)
+        this.summary = buildDemoDashboardSummary()
+        this.$nextTick(async () => {
+          await this.initCharts()
+        })
       }
     },
     async fetchPendingOrders (page, pageSize) {
@@ -766,13 +1024,32 @@ export default {
         const res = await getPendingOrders({ page: current, pageSize: size })
         if (res.code === 1) {
           const data = res.data || {}
-          this.pendingOrders = data.list || []
-          this.ordersPagination.current = Number(data.page || current || 1)
-          this.ordersPagination.pageSize = Number(data.pageSize || size || 20)
-          this.ordersPagination.total = Number(data.total || 0)
+          const list = data.list || []
+          if (this.isDemoMode || list.length === 0) {
+            this.pendingOrders = buildDemoPendingOrders()
+            this.ordersPagination.current = 1
+            this.ordersPagination.pageSize = 20
+            this.ordersPagination.total = this.pendingOrders.length
+          } else {
+            this.pendingOrders = list
+            this.ordersPagination.current = Number(data.page || current || 1)
+            this.ordersPagination.pageSize = Number(data.pageSize || size || 20)
+            this.ordersPagination.total = Number(data.total || 0)
+          }
+        } else if (this.isDemoMode) {
+          this.pendingOrders = buildDemoPendingOrders()
+          this.ordersPagination.current = 1
+          this.ordersPagination.pageSize = 20
+          this.ordersPagination.total = this.pendingOrders.length
         }
       } catch (e) {
         console.error('获取订单列表失败:', e)
+        if (this.isDemoMode) {
+          this.pendingOrders = buildDemoPendingOrders()
+          this.ordersPagination.current = 1
+          this.ordersPagination.pageSize = 20
+          this.ordersPagination.total = this.pendingOrders.length
+        }
       } finally {
         this.ordersLoading = false
       }

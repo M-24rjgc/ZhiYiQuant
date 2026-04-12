@@ -10,7 +10,7 @@ from app import create_app
 def main():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--host", default=os.getenv("PYTHON_API_HOST", "127.0.0.1"))
-    parser.add_argument("--port", type=int, default=int(os.getenv("PYTHON_API_PORT", "5000")))
+    parser.add_argument("--port", type=int, default=int(os.getenv("PYTHON_API_PORT", "5051")))
     args, _ = parser.parse_known_args()
 
     os.environ["PYTHON_API_HOST"] = args.host

@@ -125,7 +125,15 @@ async function initializeDesktopRuntime () {
       await sleep(150)
     }
 
-    const ready = await waitForDesktopBackend(request.defaults.baseURL || window.__ZHIYIQUANT_API_BASE_URL__)
+    let baseURL = request.defaults.baseURL || window.__ZHIYIQUANT_API_BASE_URL__ || ''
+    let ready = await waitForDesktopBackend(baseURL)
+
+    if (!ready && !baseURL) {
+      const fallbackPort = 5051
+      baseURL = setDesktopApiPort(fallbackPort)
+      ready = await waitForDesktopBackend(baseURL)
+    }
+
     emitDesktopRuntimeReady(ready)
     return ready
   } catch (e) {

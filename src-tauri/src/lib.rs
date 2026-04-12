@@ -26,7 +26,18 @@ fn pick_free_port() -> u16 {
   TcpListener::bind(("127.0.0.1", 0))
     .and_then(|l| l.local_addr())
     .map(|a| a.port())
-    .unwrap_or(5000)
+    .unwrap_or(5051)
+}
+
+fn pick_backend_port(skip_sidecar: bool) -> u16 {
+  if skip_sidecar {
+    std::env::var("PYTHON_API_PORT")
+      .ok()
+      .and_then(|v| v.parse::<u16>().ok())
+      .unwrap_or(5051)
+  } else {
+    pick_free_port()
+  }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -47,33 +58,38 @@ pub fn run() {
         )?;
       }
 
-      let port = pick_free_port();
+      let skip_sidecar = std::env::var("SKIP_BACKEND_SIDECAR").is_ok();
+      let port = pick_backend_port(skip_sidecar);
       *app.state::<BackendPortState>().0.lock().unwrap() = Some(port);
       log::info!("backend port: {}", port);
-      let sidecar_command = app
-        .shell()
-        .sidecar("zhiyiquant-backend")?
-        .args(["--host", "127.0.0.1", "--port", &port.to_string()]);
 
-      let (mut rx, child) = sidecar_command.spawn()?;
-      *app.state::<SidecarState>().0.lock().unwrap() = Some(child);
+      // In development, allow using an externally-running backend via SKIP_BACKEND_SIDECAR env var
+      if !skip_sidecar {
+        let sidecar_command = app
+          .shell()
+          .sidecar("zhiyiquant-backend")?
+          .args(["--host", "127.0.0.1", "--port", &port.to_string()]);
 
-      app.emit("zhiyiquant:backend-port", port)?;
+        let (mut rx, child) = sidecar_command.spawn()?;
+        *app.state::<SidecarState>().0.lock().unwrap() = Some(child);
 
-      let app_handle = app.handle().clone();
-      tauri::async_runtime::spawn(async move {
-        while let Some(event) = rx.recv().await {
-          match event {
-            CommandEvent::Stdout(line) => {
-              let _ = app_handle.emit("zhiyiquant:backend-stdout", String::from_utf8_lossy(&line).to_string());
+        let app_handle = app.handle().clone();
+        tauri::async_runtime::spawn(async move {
+          while let Some(event) = rx.recv().await {
+            match event {
+              CommandEvent::Stdout(line) => {
+                let _ = app_handle.emit("zhiyiquant:backend-stdout", String::from_utf8_lossy(&line).to_string());
+              }
+              CommandEvent::Stderr(line) => {
+                let _ = app_handle.emit("zhiyiquant:backend-stderr", String::from_utf8_lossy(&line).to_string());
+              }
+              _ => {}
             }
-            CommandEvent::Stderr(line) => {
-              let _ = app_handle.emit("zhiyiquant:backend-stderr", String::from_utf8_lossy(&line).to_string());
-            }
-            _ => {}
           }
-        }
-      });
+        });
+      }
+      
+      app.emit("zhiyiquant:backend-port", port)?;
 
       let autoclose_ms = std::env::var("ZHIYIQUANT_AUTOCLOSE_MS").ok().and_then(|v| v.parse::<u64>().ok());
       if let Some(ms) = autoclose_ms {

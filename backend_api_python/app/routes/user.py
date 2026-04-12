@@ -3,6 +3,8 @@ Desktop account profile and notification routes.
 """
 from __future__ import annotations
 
+from email.utils import parseaddr
+
 from flask import Blueprint, jsonify, g, request
 
 from app.services.signal_notifier import SignalNotifier
@@ -69,11 +71,16 @@ def get_notification_settings():
 @login_required
 def update_notification_settings():
     payload = request.get_json() or {}
+    email_raw = (payload.get("email") or "").strip()
+    email_addr = parseaddr(email_raw)[1].strip() if email_raw else ""
+    if email_raw and (not email_addr or "@" not in email_addr):
+        return jsonify({"code": 0, "msg": "Invalid notification email format", "data": None}), 400
+
     allowed = {
         "default_channels": payload.get("default_channels") or ["browser"],
         "telegram_bot_token": payload.get("telegram_bot_token") or "",
         "telegram_chat_id": payload.get("telegram_chat_id") or "",
-        "email": payload.get("email") or "",
+        "email": email_addr or "",
         "discord_webhook": payload.get("discord_webhook") or "",
         "webhook_url": payload.get("webhook_url") or "",
         "webhook_token": payload.get("webhook_token") or "",
@@ -88,7 +95,13 @@ def update_notification_settings():
 @login_required
 def test_notification():
     user_id = int(g.user_id)
+    profile = get_user_service().get_profile(user_id) or {}
     settings = get_user_service().get_notification_settings(user_id)
+
+    settings_email = parseaddr((settings.get("email") or "").strip())[1].strip() if settings.get("email") else ""
+    profile_email = parseaddr((profile.get("email") or "").strip())[1].strip() if profile.get("email") else ""
+    effective_email = settings_email or profile_email
+
     notifier = SignalNotifier()
     result = notifier.notify_signal(
         strategy_id=0,
@@ -98,12 +111,13 @@ def test_notification():
         price=0.0,
         stake_amount=0.0,
         direction="long",
+        extra={"user_id": user_id},
         notification_config={
             "channels": settings.get("default_channels") or ["browser"],
             "targets": {
                 "telegram": settings.get("telegram_chat_id") or "",
                 "telegram_bot_token": settings.get("telegram_bot_token") or "",
-                "email": settings.get("email") or "",
+                "email": effective_email,
                 "discord": settings.get("discord_webhook") or "",
                 "webhook": settings.get("webhook_url") or "",
                 "webhook_token": settings.get("webhook_token") or "",
@@ -111,4 +125,13 @@ def test_notification():
             },
         },
     )
-    return jsonify({"code": 1, "msg": "success", "data": result})
+    failed = {k: v for k, v in (result or {}).items() if not bool((v or {}).get("ok"))}
+    if failed:
+        channels = ", ".join(sorted(failed.keys()))
+        return jsonify({
+            "code": 0,
+            "msg": f"Notification failed for channels: {channels}",
+            "data": {"result": result, "failed": failed},
+        }), 400
+
+    return jsonify({"code": 1, "msg": "success", "data": {"result": result, "failed": {}}})
