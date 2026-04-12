@@ -6,8 +6,8 @@
   "build": {
     "frontendDist": "../zhiyiquant_vue/dist",
     "devUrl": "http://localhost:8000",
-    "beforeDevCommand": "npm --prefix ./zhiyiquant_vue run serve",
-    "beforeBuildCommand": "npm --prefix ./zhiyiquant_vue run build"
+    "beforeDevCommand": "npm --prefix /Users/flx/Documents/ZhiYiQuant_repo/zhiyiquant_vue run serve",
+    "beforeBuildCommand": "npm --prefix /Users/flx/Documents/ZhiYiQuant_repo/zhiyiquant_vue run build"
   },
   "app": {
     "windows": [
@@ -34,9 +34,7 @@
         "language": "zh-CN"
       }
     },
-    "externalBin": [
-      "binaries/zhiyiquant-backend"
-    ],
+    "externalBin": [],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

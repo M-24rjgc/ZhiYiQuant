@@ -90,17 +90,19 @@ export default {
     return {
       loginLoading: false,
       loginError: '',
+      runtimeReadyListener: null,
       runtimeReady: typeof window === 'undefined' ? true : window.__ZHIYIQUANT_RUNTIME_READY__ !== false
     }
   },
   mounted () {
     if (typeof window !== 'undefined') {
-      window.addEventListener('zhiyiquant:runtime-ready', this.handleRuntimeReady)
+      this.runtimeReadyListener = (event) => this.handleRuntimeReady(event)
+      window.addEventListener('zhiyiquant:runtime-ready', this.runtimeReadyListener)
     }
   },
   beforeDestroy () {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('zhiyiquant:runtime-ready', this.handleRuntimeReady)
+    if (typeof window !== 'undefined' && this.runtimeReadyListener) {
+      window.removeEventListener('zhiyiquant:runtime-ready', this.runtimeReadyListener)
     }
   },
   methods: {

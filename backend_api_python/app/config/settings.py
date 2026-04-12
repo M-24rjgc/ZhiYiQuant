@@ -11,7 +11,7 @@ class MetaConfig(type):
 
     @property
     def PORT(cls):
-        return int(os.getenv('PYTHON_API_PORT', 5000))
+        return int(os.getenv('PYTHON_API_PORT', 5051))
 
     @property
     def DEBUG(cls):

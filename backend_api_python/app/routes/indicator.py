@@ -13,7 +13,7 @@ import re
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, Response, jsonify, request, g
 import pandas as pd
@@ -149,7 +149,7 @@ def _kline_to_df(klines: List[Any]) -> pd.DataFrame:
     return df
 
 
-def _run_indicator_code(code: str, df: pd.DataFrame, params: Dict[str, Any] | None = None) -> Dict[str, Any]:
+def _run_indicator_code(code: str, df: pd.DataFrame, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     exec_env = {
         'df': df.copy(),
         'pd': pd,
@@ -646,9 +646,10 @@ IMPORTANT: Output Python code directly, without explanations, without descriptio
 
     def _template_code() -> str:
         # Fallback template that follows the project expectations.
+        prompt_summary = prompt.replace("\n", " ")[:200]
         header = (
             f"my_indicator_name = \"Custom Indicator\"\n"
-            f"my_indicator_description = \"{prompt.replace('\\n', ' ')[:200]}\"\n\n"
+            f"my_indicator_description = \"{prompt_summary}\"\n\n"
         )
         body = (
             "df = df.copy()\n\n"

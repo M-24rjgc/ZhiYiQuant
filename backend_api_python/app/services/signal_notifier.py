@@ -27,10 +27,12 @@ import time
 import traceback
 from datetime import datetime, timezone
 from email.message import EmailMessage
+from email.utils import parseaddr
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
+from app.utils.config_loader import load_addon_config
 from app.utils.db import get_db_connection
 from app.utils.logger import get_logger
 
@@ -113,22 +115,41 @@ class SignalNotifier:
         except Exception:
             self.timeout_sec = 6.0
 
-        # 桌面应用级 SMTP 配置
-        self.smtp_host = (os.getenv("SMTP_HOST") or "").strip()
+        notifications_cfg = {}
         try:
-            self.smtp_port = int(os.getenv("SMTP_PORT") or "587")
+            notifications_cfg = (load_addon_config() or {}).get("notifications") or {}
+        except Exception:
+            notifications_cfg = {}
+
+        def _env_or_cfg(env_key: str, cfg_key: str, default: Any = "") -> Any:
+            raw = os.getenv(env_key)
+            if raw is not None and str(raw).strip() != "":
+                return raw
+            return notifications_cfg.get(cfg_key, default)
+
+        def _to_bool(value: Any, default: bool = False) -> bool:
+            if isinstance(value, bool):
+                return value
+            if value is None:
+                return default
+            return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+        # 桌面应用级 SMTP 配置
+        self.smtp_host = str(_env_or_cfg("SMTP_HOST", "smtp_host", "") or "").strip()
+        try:
+            self.smtp_port = int(_env_or_cfg("SMTP_PORT", "smtp_port", 587) or 587)
         except Exception:
             self.smtp_port = 587
-        self.smtp_user = (os.getenv("SMTP_USER") or "").strip()
-        self.smtp_password = (os.getenv("SMTP_PASSWORD") or "").strip()
-        self.smtp_from = (os.getenv("SMTP_FROM") or self.smtp_user or "").strip()
-        self.smtp_use_tls = (os.getenv("SMTP_USE_TLS") or "true").strip().lower() == "true"
+        self.smtp_user = str(_env_or_cfg("SMTP_USER", "smtp_user", "") or "").strip()
+        self.smtp_password = str(_env_or_cfg("SMTP_PASSWORD", "smtp_password", "") or "").strip()
+        self.smtp_from = str(_env_or_cfg("SMTP_FROM", "smtp_from", self.smtp_user) or self.smtp_user or "").strip()
+        self.smtp_use_tls = _to_bool(_env_or_cfg("SMTP_USE_TLS", "smtp_use_tls", True), default=True)
         # Some providers require implicit SSL (port 465). Support it via SMTP_USE_SSL.
-        self.smtp_use_ssl = (os.getenv("SMTP_USE_SSL") or "").strip().lower() == "true"
+        self.smtp_use_ssl = _to_bool(_env_or_cfg("SMTP_USE_SSL", "smtp_use_ssl", False), default=False)
 
-        self.twilio_sid = (os.getenv("TWILIO_ACCOUNT_SID") or "").strip()
-        self.twilio_token = (os.getenv("TWILIO_AUTH_TOKEN") or "").strip()
-        self.twilio_from = (os.getenv("TWILIO_FROM_NUMBER") or "").strip()
+        self.twilio_sid = str(_env_or_cfg("TWILIO_ACCOUNT_SID", "twilio_account_sid", "") or "").strip()
+        self.twilio_token = str(_env_or_cfg("TWILIO_AUTH_TOKEN", "twilio_auth_token", "") or "").strip()
+        self.twilio_from = str(_env_or_cfg("TWILIO_FROM_NUMBER", "twilio_from_number", "") or "").strip()
 
     def notify_signal(
         self,
@@ -172,6 +193,11 @@ class SignalNotifier:
                 continue
             try:
                 if c == "browser":
+                    extra_user_id = None
+                    try:
+                        extra_user_id = int((extra or {}).get("user_id") or 0) or None
+                    except Exception:
+                        extra_user_id = None
                     ok, err = self._notify_browser(
                         strategy_id=strategy_id,
                         symbol=symbol,
@@ -180,6 +206,7 @@ class SignalNotifier:
                         title=title,
                         message=message_plain,
                         payload=payload,
+                        user_id=extra_user_id,
                     )
                 elif c == "webhook":
                     url = (targets.get("webhook") or "").strip()
@@ -448,15 +475,25 @@ class SignalNotifier:
     ) -> Tuple[bool, str]:
         try:
             now = int(time.time())
+            strategy_id_db: Optional[int] = None
+            try:
+                sid = int(strategy_id or 0)
+                strategy_id_db = sid if sid > 0 else None
+            except Exception:
+                strategy_id_db = None
+
             # Get user_id from strategy if not provided
             if user_id is None:
                 try:
-                    with get_db_connection() as db:
-                        cur = db.cursor()
-                        cur.execute("SELECT user_id FROM zhiyiquant_strategies_trading WHERE id = ?", (strategy_id,))
-                        row = cur.fetchone()
-                        cur.close()
-                    user_id = int((row or {}).get('user_id') or 1)
+                    if strategy_id_db is not None:
+                        with get_db_connection() as db:
+                            cur = db.cursor()
+                            cur.execute("SELECT user_id FROM zhiyiquant_strategies_trading WHERE id = ?", (strategy_id_db,))
+                            row = cur.fetchone()
+                            cur.close()
+                        user_id = int((row or {}).get('user_id') or 1)
+                    else:
+                        user_id = 1
                 except Exception:
                     user_id = 1
             with get_db_connection() as db:
@@ -469,7 +506,7 @@ class SignalNotifier:
                     """,
                     (
                         int(user_id),
-                        int(strategy_id),
+                        strategy_id_db,
                         str(symbol or ""),
                         str(signal_type or ""),
                         ",".join([str(c) for c in (channels or [])]),
@@ -483,7 +520,7 @@ class SignalNotifier:
             return True, ""
         except Exception as e:
             logger.warning(f"browser notify persist failed: {e}")
-            logger.error('browser.error', traceback=traceback.format_exc())
+            logger.error(f"browser.error: {traceback.format_exc()}")
             return False, str(e)
 
     def _notify_webhook(
@@ -573,7 +610,7 @@ class SignalNotifier:
                 return False, f"http_{resp2.status_code}:{(resp2.text or '')[:300]}"
             return False, f"http_{resp.status_code}:{(resp.text or '')[:300]}"
         except Exception as e:
-            logger.error('webhook.error', traceback=traceback.format_exc())
+            logger.error(f"webhook.error: {traceback.format_exc()}")
             return False, str(e)
 
     def _notify_discord(self, *, url: str, payload: Dict[str, Any], fallback_text: str) -> Tuple[bool, str]:
@@ -649,7 +686,7 @@ class SignalNotifier:
                 pass
             return False, f"http_{resp.status_code}:{(resp.text or '')[:300]}"
         except Exception as e:
-            logger.error('discord.error', traceback=traceback.format_exc())
+            logger.error(f"discord.error: {traceback.format_exc()}")
             return False, str(e)
 
     def _notify_telegram(
@@ -684,7 +721,7 @@ class SignalNotifier:
                 return True, ""
             return False, f"http_{resp.status_code}:{(resp.text or '')[:300]}"
         except Exception as e:
-            logger.error('telegram.error', traceback=traceback.format_exc())
+            logger.error(f"telegram.error: {traceback.format_exc()}")
             return False, str(e)
 
     def _notify_email(self, *, to_email: str, subject: str, body_text: str, body_html: str = "") -> Tuple[bool, str]:
@@ -695,9 +732,26 @@ class SignalNotifier:
         if not self.smtp_from:
             return False, "missing_SMTP_FROM"
 
+        raw_to = str(to_email or "").replace(";", ",")
+        candidates = [x.strip() for x in raw_to.split(",") if x and x.strip()]
+        valid_to: List[str] = []
+        for item in candidates:
+            _, parsed = parseaddr(item)
+            parsed = (parsed or "").strip()
+            if parsed and "@" in parsed and " " not in parsed:
+                valid_to.append(parsed)
+
+        if not valid_to:
+            return False, "invalid_email_target"
+
+        _, parsed_from = parseaddr(str(self.smtp_from or ""))
+        smtp_from = (parsed_from or "").strip()
+        if not smtp_from or "@" not in smtp_from:
+            return False, "invalid_SMTP_FROM"
+
         msg = EmailMessage()
-        msg["From"] = self.smtp_from
-        msg["To"] = to_email
+        msg["From"] = smtp_from
+        msg["To"] = ", ".join(valid_to)
         msg["Subject"] = str(subject or "Signal")
         msg.set_content(str(body_text or ""))
         if (body_html or "").strip():
@@ -711,7 +765,7 @@ class SignalNotifier:
                     server.ehlo()
                     if self.smtp_user and self.smtp_password:
                         server.login(self.smtp_user, self.smtp_password)
-                    server.send_message(msg)
+                    server.send_message(msg, to_addrs=valid_to)
             else:
                 with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=self.timeout_sec) as server:
                     server.ehlo()
@@ -720,10 +774,10 @@ class SignalNotifier:
                         server.ehlo()
                     if self.smtp_user and self.smtp_password:
                         server.login(self.smtp_user, self.smtp_password)
-                    server.send_message(msg)
+                    server.send_message(msg, to_addrs=valid_to)
             return True, ""
         except Exception as e:
-            logger.error('email.error', traceback=traceback.format_exc())
+            logger.error(f"email.error: {traceback.format_exc()}")
             return False, str(e)
 
     def _notify_phone(self, *, to_phone: str, body: str) -> Tuple[bool, str]:
@@ -740,7 +794,7 @@ class SignalNotifier:
                 return True, ""
             return False, f"http_{resp.status_code}:{(resp.text or '')[:300]}"
         except Exception as e:
-            logger.error('phone.error', traceback=traceback.format_exc())
+            logger.error(f"phone.error: {traceback.format_exc()}")
             return False, str(e)
 
 

@@ -9,13 +9,13 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from app.config.database import SQLiteConfig
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
-_config_cache: dict[str, Any] | None = None
+_config_cache: Optional[dict[str, Any]] = None
 
 
 def get_settings_file_path() -> Path:
@@ -59,7 +59,7 @@ def load_addon_config() -> dict[str, Any]:
             ref = node
         ref[parts[-1]] = value
 
-    def env_get(name: str) -> str | None:
+    def env_get(name: str) -> Optional[str]:
         value = os.getenv(name)
         if value is None:
             return None
@@ -146,7 +146,7 @@ def _convert_value(value: str, value_type: str) -> Any:
     return value
 
 
-def get_internal_api_key() -> str | None:
+def get_internal_api_key() -> Optional[str]:
     return load_addon_config().get("internal_api", {}).get("key")
 
 

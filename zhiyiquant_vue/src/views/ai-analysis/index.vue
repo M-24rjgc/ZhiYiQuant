@@ -101,7 +101,7 @@
                 </div>
               </template>
               <template v-else>
-                <div class="heatmap-empty">{{ $t('common.noData') || '暂无数据' }}</div>
+                <div class="heatmap-empty">{{ $te('common.noData') ? $t('common.noData') : '暂无数据' }}</div>
               </template>
             </div>
           </div>

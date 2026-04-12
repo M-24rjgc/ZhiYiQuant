@@ -17,6 +17,7 @@ const locale = {
   'common.add': '添加',
   'common.close': '关闭',
   'common.ok': '确定',
+  'common.noData': '暂无数据',
   'submit': '提交',
   'save': '保存',
   'submit.ok': '提交成功',
